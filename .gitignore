@@ -1,2 +1,5 @@
 # Protocol Buffers
 *.pb.go
+
+# Env var file
+.env
