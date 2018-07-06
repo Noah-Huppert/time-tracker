@@ -4,19 +4,37 @@ const path = require("path");
 const webpack = require("webpack");
 
 module.exports = {
-	entry: "./src/js/main.js",
+	entry: {
+		"js/main.js": "./src/js/main.js",
+		"index.html": "./src/index.html"
+	},
 	output: {
 		path: path.resolve(__dirname, "dist"),
-		filename: "js/main.bundle.js"
+		filename: "[name]"
 	},
 	module: {
 		rules: [
 			{
 				test: /\.js$/,
-				loader: "babel-loader",
-				query: {
-					presets: ["es2015"]
-				}
+				use: [
+					{
+						loader: "babel-loader",
+						options: {
+							presets: ["babel-preset-env"]
+						}
+					}
+				]
+			},
+			{
+				test: /\.html$/,
+				use: [
+					{
+						loader: "file-loader",
+						options: {
+							name: "[name].[ext]"
+						}
+					}
+				]
 			}
 		]
 	},
