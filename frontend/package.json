@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "description": "Time tracker application frontend",
   "main": "webpack.config.js",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "webpack": "npx webpack"
   },
   "repository": {
     "type": "git",
@@ -15,5 +17,12 @@
   "bugs": {
     "url": "https://github.com/Noah-Huppert/time-tracker/issues"
   },
-  "homepage": "https://github.com/Noah-Huppert/time-tracker#readme"
+  "homepage": "https://github.com/Noah-Huppert/time-tracker#readme",
+  "devDependencies": {
+    "babel-core": "^6.26.3",
+    "babel-loader": "^7.1.5",
+    "babel-preset-es2015": "^6.24.1",
+    "webpack": "^4.15.1",
+    "webpack-cli": "^3.0.8"
+  }
 }

@@ -6,3 +6,9 @@
 
 # Local Postgres database
 run-data/
+
+# Frontend node modules
+frontend/node_modules/
+
+# Frontend webpack build
+frontend/dist/
