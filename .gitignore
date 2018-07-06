@@ -3,3 +3,6 @@
 
 # Env var file
 .env
+
+# Local Postgres database
+run-data/
