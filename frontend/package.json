@@ -1,0 +1,19 @@
+{
+  "name": "time-tracker-frontend",
+  "version": "0.1.0",
+  "description": "Time tracker application frontend",
+  "main": "webpack.config.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Noah-Huppert/time-tracker.git"
+  },
+  "author": "Noah Huppert",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Noah-Huppert/time-tracker/issues"
+  },
+  "homepage": "https://github.com/Noah-Huppert/time-tracker#readme"
+}
