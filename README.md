@@ -8,7 +8,7 @@ Open source time tracker.
 	- [Database](#database)
 
 # Overview
-Provides time tracking features.
+Provides work time tracking features.
 
 # Development
 ## Protocol Buffers
