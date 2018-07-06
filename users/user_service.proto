@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package users;
+
+import "users/user_model.proto";
+
+service Users {
+    rpc Get(GetUserReq) returns (User) {}
+    rpc Create(CreateUserReq) returns (User) {}
+    rpc Login(LoginUserReq) returns (LoginUserResp) {}
+}
+
+message GetUserReq {
+    int32 id = 1;
+}
+
+message CreateUserReq {
+    User user = 1;
+    string password = 2;
+}
+
+message LoginUserReq {
+    int32 id = 1;
+    string password = 2;
+}
+
+message LoginUserResp {
+    string auth_token = 1;
+    User user = 2;
+}
