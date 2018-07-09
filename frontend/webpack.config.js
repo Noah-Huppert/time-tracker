@@ -1,5 +1,3 @@
-"use strict";
-
 // Require
 const path = require("path");
 const webpack = require("webpack");
@@ -9,31 +7,48 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 // Constants
 const buildDir = path.resolve(__dirname, "dist")
+const devHttpPort = 5000;
 
 module.exports = {
 	// Input
-	entry: {
-		"js/main.js": "./src/js/main.js"
-	},
+	entry: ["./src/ts/app.tsx"],
 
 	// Output
 	output: {
 		path: buildDir,
-		filename: '[name].[chunkhash].js',
+		filename: '[name].[hash].js',
 	},	
 
 	// Pre-Processors
 	module: {
 		rules: [
-			// Javascript ES6
+			// Typescript
 			{
-				test: /\.js$/,
+				test: /\.tsx$/,
+				exclude: [/node_modules/],
 				use: [
 					{
-						loader: "babel-loader",
-						options: {
-							presets: ["babel-preset-env"]
-						}
+						loader: "ts-loader"
+					}
+				]
+			},
+
+			// HTML
+			{
+				test: /\.html$/,
+				use: [
+					{
+						loader: "html-loader"
+					}
+				]
+			},
+
+			// CSSk
+			{
+				test: /\.css$/,
+				use: [
+					{
+						loader: "css-loader"
 					}
 				]
 			}
@@ -44,13 +59,14 @@ module.exports = {
 	plugins: [
 		// Clean build directory
 		new CleanWebpackPlugin([buildDir]),
-		
+
 		// HTML generation
 		new HtmlWebpackPlugin({
 			title: "Time Tracker",
 			meta: {
 				viewport: "width=device-with, initial-scale=1"
-			}
+			},
+			template: "src/index.html"
 		})
 	],
 
@@ -58,5 +74,7 @@ module.exports = {
 	stats: {
 		colors: true
 	},
-	devtool: "source-map"
+
+	// Development server
+	devtool: "source-map",
 };
