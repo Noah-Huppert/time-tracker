@@ -4,6 +4,7 @@ Open source time tracker.
 # Table Of Contents
 - [Overview](#overview)
 - [Development](#development)
+	- [Setup](#setup)
 	- [Protocol Buffers](#protocol-buffers)
 	- [Database](#database)
 
@@ -11,6 +12,20 @@ Open source time tracker.
 Provides work time tracking features.
 
 # Development
+## Setup
+Install server dependencies by running the following in the repository root:  
+
+```
+dep
+```
+
+Install frontend dependencies by running the following in the `/frontend` directory:  
+
+```
+npm install
+```
+
+
 ## Protocol Buffers
 Protocol buffers is used with GRPC.  
 

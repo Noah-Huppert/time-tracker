@@ -4,6 +4,12 @@
 		"jsx": "react",
 		"module": "commonjs"
 	},
+	"linterOptions": {
+		"exclude": [
+			"*_pb*.js",
+			"*_pb*.d.ts"
+		]
+	},
 	"exclude": [
 		"node_modules"
 	]

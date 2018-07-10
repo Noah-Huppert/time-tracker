@@ -16,6 +16,9 @@ PG_GUEST_DATA_DIR=/var/lib/postgresql/data
 
 # Protocol buffers variables
 PROTO_USERS_IN_DIR=users/*.proto
+PROTO_TS_COMPILER=./frontend/node_modules/.bin/protoc-gen-ts
+PROTO_TS_OUT=./frontend/src
+PROTO_JS_OUT=./frontend/src
 
 # Starts a local PostgreSQL database
 pg:
@@ -32,4 +35,7 @@ pg:
 # Compiles protocol buffer files
 proto:
 	protoc ${PROTO_USERS_IN_DIR} \
-		 --go_out=plugins=grpc:.
+		 --go_out=plugins=grpc:. \
+		 --plugin=protoc-gen-ts=${PROTO_TS_COMPILER} \
+		 --ts_out=service=true:${PROTO_TS_OUT} \
+		 --js_out=import_style=commonjs,binary:${PROTO_JS_OUT}
