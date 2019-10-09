@@ -5,4 +5,4 @@ Track time spent on projects.
 - [Overview](#overview)
 
 # Overview
-Flutter app, Go API, Etcd data store.
+Go API, Postgres data store, CLI, maybe a Flutter app.
