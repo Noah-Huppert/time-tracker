@@ -1,19 +1,22 @@
 package main
 
 import (
-	"net/http"
+	"os"
 	"testing"
 
 	"github.com/gavv/httpexpect"
 )
 
-func TestMain(t *testing.T) {
+// TestMain starts the API server and invokes the tests
+func TestMain(m *testing.M) {
 	go func() {
 		main()
 	}()
 
-	e := httpexpect.New(t, "http://localhost:8000")
-	e.GET("/api/v0/health").Expect().
-		Status(http.StatusOK).
-		JSON().Equal(map[string]interface{}{"ok": true})
+	os.Exit(m.Run())
+}
+
+// httpTester creates a new httpexpect.Expect instance
+func httpTester(t *testing.T) *httpexpect.Expect {
+	return httpexpect.New(t, "http://localhost:8000")
 }

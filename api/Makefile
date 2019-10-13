@@ -20,7 +20,7 @@ run:
 
 # Run tests
 test:
-	go test .
+	go test -v ./...
 
 # Start a local development Postgres server
 db:
