@@ -5,6 +5,7 @@ HOST_CONTAINER_DATA_DIR ?= ${PWD}/container-data
 
 DB_HOST_DIR ?= ${HOST_CONTAINER_DATA_DIR}/db/
 DB_CONTAINER ?= postgres:12-alpine
+DB_SSL_MODE ?= disable
 DB_HOST ?= localhost:5432
 DB_NAME ?= dev-time-tracker
 DB_USER ?= dev-time-tracker
@@ -23,6 +24,7 @@ db:
 	${CONTAINER_CLI} run \
 		-it \
 		--rm \
+		--net host \
 		-v ${DB_HOST_DIR}:/var/lib/postgresql/data \
 		-e POSTGRES_DB=${DB_NAME} \
 		-e POSTGRES_USER=${DB_USER} \
@@ -40,4 +42,4 @@ migrate-db:
 		--network host \
 		${DB_MIGRATE_CONTAINER} \
 		-path /mnt \
-		-database postgres://${DB_HOST}/${DB_NAME} up
+		-database postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}/${DB_NAME}?sslmode=${DB_SSL_MODE} up
