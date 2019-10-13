@@ -8,5 +8,7 @@ CREATE TABLE time_entry (
 	  		    NOT NULL
 	  		    REFERENCES contract
 			    ON DELETE CASCADE,
-	  hours FLOAT NOT NULL
+	  start_on TIMESTAMP WITH TIME ZONE NOT NULL,
+	  end_on TIMESTAMP WITH TIME ZONE,
+	  duration INTERVAL GENERATED ALWAYS AS (end_on - start_on) STORED
 )
