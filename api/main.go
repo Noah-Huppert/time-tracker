@@ -7,7 +7,7 @@ DELETE HTTP verbs.
 
 Responses will always be JSON encoded.
 
-RESTful API. With resources: users, auth tokens, clients, projects, time entry.
+See data-model.png for models.
 */
 package main
 
