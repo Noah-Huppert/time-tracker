@@ -33,3 +33,9 @@ Then run the server:
 ```
 make run
 ```
+
+To run tests:
+
+```
+make test
+```

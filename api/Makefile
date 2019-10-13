@@ -1,4 +1,4 @@
-.PHONY: run db clean-db migrate-db
+.PHONY: run test db clean-db migrate-db
 
 CONTAINER_CLI ?= podman
 HOST_CONTAINER_DATA_DIR ?= ${PWD}/container-data
@@ -17,6 +17,10 @@ DB_MIGRATIONS_HOST_DIR ?= ${PWD}/db-migrations
 # Build and run server from source
 run:
 	go run .
+
+# Run tests
+test:
+	go test .
 
 # Start a local development Postgres server
 db:
