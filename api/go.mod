@@ -12,6 +12,7 @@ require (
 	github.com/gorilla/websocket v1.4.1 // indirect
 	github.com/imkira/go-interpol v1.1.0 // indirect
 	github.com/moul/http2curl v1.0.0 // indirect
+	github.com/rs/zerolog v1.15.0
 	github.com/sergi/go-diff v1.0.0 // indirect
 	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/valyala/fasthttp v1.5.0 // indirect

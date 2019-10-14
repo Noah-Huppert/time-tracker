@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 	"net/http"
 )
 
@@ -15,8 +15,9 @@ type JSONResponder struct {
 	Data interface{}
 }
 
-// ServeHTTP writes the JSON response
-func (h JSONResponder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// Respond writes the JSON response
+func (h JSONResponder) Respond(ectx EndpointContext, w http.ResponseWriter,
+	r *http.Request) error {
 	w.Header().Set("Content-Type", "application/json")
 	if h.Status == 0 {
 		h.Status = http.StatusOK
@@ -27,6 +28,8 @@ func (h JSONResponder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	encoder := json.NewEncoder(w)
 	err := encoder.Encode(h.Data)
 	if err != nil {
-		log.Fatalf("failed to encode JSON: %s", err.Error())
+		return fmt.Errorf("failed to encode JSON: %s", err.Error())
 	}
+
+	return nil
 }

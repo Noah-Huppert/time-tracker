@@ -9,10 +9,10 @@ import (
 type HealthEndpoint struct{}
 
 // Handle
-func (e HealthEndpoint) Handle(r *http.Request) http.Handler {
+func (e HealthEndpoint) Handle(ectx EndpointContext, r *http.Request) (Responder, error) {
 	return JSONResponder{
 		Data: map[string]interface{}{
 			"ok": true,
 		},
-	}
+	}, nil
 }
