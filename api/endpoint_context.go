@@ -8,4 +8,7 @@ import (
 type EndpointContext struct {
 	// Log outputs information to a log file
 	Log zerolog.Logger
+
+	// Cfg is application config
+	Cfg Config
 }

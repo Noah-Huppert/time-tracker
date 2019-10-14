@@ -16,10 +16,17 @@ type Endpoint interface {
 	Handle(ectx EndpointContext, r *http.Request) (Responder, error)
 }
 
-// WrapEndpoint wraps a Endpoint to make it a http.Handler
-func WrapEndpoint(endpoint Endpoint) http.Handler {
+// EndpointWrapper turns Endpoints into http.Handlers
+type EndpointWrapper struct {
+	// Cfg is application config
+	Cfg Config
+}
+
+// Wrap an Endpoint to make it a http.Handler
+func (wrapper EndpointWrapper) Wrap(endpoint Endpoint) http.Handler {
 	return endpointHandler{
 		endpoint: endpoint,
+		cfg:      wrapper.Cfg,
 	}
 }
 
@@ -27,6 +34,7 @@ func WrapEndpoint(endpoint Endpoint) http.Handler {
 // an http.Handler
 type endpointHandler struct {
 	endpoint Endpoint
+	cfg      Config
 }
 
 // ServeHTTP runs a Endpoint
@@ -37,6 +45,7 @@ func (h endpointHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Str("method", r.Method).
 			Str("path", r.URL.String()).
 			Logger(),
+		Cfg: h.cfg,
 	}
 
 	// Handle request

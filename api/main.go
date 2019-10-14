@@ -23,7 +23,7 @@ import (
 )
 
 func main() {
-	// {{{1 Initialization
+	// Initialization
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	wg := sync.WaitGroup{}
 
@@ -35,9 +35,20 @@ func main() {
 		cancelCtx()
 	}()
 
-	// {{{1 Start HTTP server
+	// Load config
+	cfg, err := NewConfig()
+	if err != nil {
+		log.Panic().
+			Str("error", err.Error()).
+			Msg("failed to load config")
+	}
+
+	// Start HTTP server
 	handler := mux.NewRouter()
-	handler.Handle("/api/v0/health", WrapEndpoint(HealthEndpoint{}))
+	wrapper := EndpointWrapper{
+		Cfg: cfg,
+	}
+	handler.Handle("/api/v0/health", wrapper.Wrap(HealthEndpoint{}))
 
 	server := http.Server{
 		Addr: ":8000",
