@@ -1,3 +1,5 @@
+[![GoDoc](https://godoc.org/github.com/Noah-Huppert/time-tracker/api?status.svg)](https://godoc.org/github.com/Noah-Huppert/time-tracker/api)
+
 # API
 Data storage and logic.
 
