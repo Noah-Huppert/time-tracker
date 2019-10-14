@@ -4,6 +4,7 @@ Data storage and logic.
 # Table Of Contents
 - [Overview](#overview)
 - [Development](#development)
+- [Design](#design)
 
 # Overview
 Go RESTful API. Data stored in Postgres.
@@ -39,3 +40,7 @@ To run tests:
 ```
 make test
 ```
+
+# Design
+## Data Model
+![Entity relation diagram and table diagram of data stored by API](data-model.png)
