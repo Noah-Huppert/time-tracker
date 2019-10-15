@@ -13,12 +13,15 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 
 	"github.com/gorilla/mux"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 	"github.com/rs/zerolog/log"
 )
 
@@ -43,10 +46,21 @@ func main() {
 			Msg("failed to load config")
 	}
 
+	// Connect to DB
+	db, err := sqlx.Connect("postgres", fmt.Sprintf("dbname=%s user=%s "+
+		"password=%s sslmode=%s", cfg.Db.Name, cfg.Db.User, cfg.Db.Password,
+		cfg.Db.SSLMode))
+	if err != nil {
+		log.Panic().
+			Str("error", err.Error()).
+			Msg("failed to connect to database")
+	}
+
 	// Start HTTP server
 	handler := mux.NewRouter()
 	wrapper := EndpointWrapper{
 		Cfg: cfg,
+		Db:  db,
 	}
 	handler.Handle("/api/v0/health", wrapper.Wrap(HealthEndpoint{}))
 

@@ -12,6 +12,8 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/gorilla/websocket v1.4.1 // indirect
 	github.com/imkira/go-interpol v1.1.0 // indirect
+	github.com/jmoiron/sqlx v1.2.0
+	github.com/lib/pq v1.2.0
 	github.com/moul/http2curl v1.0.0 // indirect
 	github.com/rs/zerolog v1.15.0
 	github.com/sergi/go-diff v1.0.0 // indirect
