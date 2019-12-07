@@ -1,5 +1,7 @@
-CREATE TABLE time_entry (
+CREATE TABLE task (
 	  id SERIAL PRIMARY KEY,
+	  title TEXT NOT NULL,
+	  description TEXT NOT NULL,
 	  project_id INTEGER
 	  		   NOT NULL
 	  		   REFERENCES project
