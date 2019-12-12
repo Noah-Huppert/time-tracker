@@ -16,7 +16,7 @@ Go RESTful API. Data stored in Postgres.
 Go must be installed with support for Go modules.
 
 Podman must be installed in order to run the local Postgres server. If you would
-like to use Docker export the env var: `CONTAINER_CLI=docker`.
+like to use Docker export the env var: `CONTAINER_CLI=podman`.
 
 ## Instructions
 Start a Postgres server:

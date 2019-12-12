@@ -1,6 +1,9 @@
 /*
 Time tracker HTTP API.
 
+If command line arguments are passed acts as a management interface. Use to
+create users. Otherwise starts an HTTP server.
+
 Requests pass data using URL parameters for all HTTP verbs.
 JSON encoded bodies may be used for the POST, PUT, PATCH,
 DELETE HTTP verbs.
@@ -13,6 +16,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -23,6 +27,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog/log"
+	"github.com/theckman/go-securerandom"
 )
 
 func main() {
@@ -54,6 +59,31 @@ func main() {
 		log.Panic().
 			Str("error", err.Error()).
 			Msg("failed to connect to database")
+	}
+
+	// Act as managment interface if command line args provided
+
+	flag.Parse()
+	mgmtCmd := flag.Arg(0)
+
+	if len(mgmtCmd) > 0 {
+		switch mgmtCmd {
+		case "create-user":
+			log.Debug().Msg("create-user")
+
+			// TODO: Get username and fullname flag values
+			// TODO: Generate secure random with: github.com/theckman/go-securerandom
+			// TODO: Save in DB
+		default:
+			log.Panic().
+				Str("management-command", mgmtCmd).
+				Msg("Unknown management command")
+		}
+
+		log.Info().
+			Str("management-command", mgmtCmd).
+			Msg("Management command ran, exitting")
+		return
 	}
 
 	// Start HTTP server
