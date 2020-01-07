@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+ctag=postgres:12-alpine
+cname=dev-time-tracker-postgres
+ccli="sudo podman"
+
+function die() {
+    echo "$0: $@" >&2
+    exit 1
+}
+
+case "$1" in
+    start)
+	   if $ccli ps -a | grep "$cname" &> /dev/null; then
+		  $ccli start "$cname"
+	   else
+		  $ccli run -d --name "$cname" --net host "$ctag"
+	   fi
+	   ;;
+    stop) $ccli stop "$cname" ;;
+    rm) $ccli rm -f "$cname" ;;
+    *) die "unknown argument \"$1\", must be \"start\", \"stop\", \"rm\"" ;;
+esac

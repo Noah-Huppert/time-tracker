@@ -5,4 +5,11 @@ Track time spent on projects.
 - [Overview](#overview)
 
 # Overview
-Go API, Postgres data store, CLI, maybe a Flutter app.
+Postgres database, Go API.
+
+To run:
+
+```
+% ./db start # Start database
+% ./api -w # Run API and restart on source code changes
+```
