@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+if [[ "$1" == "-w" ]]; then
+    arg_watch=isset
+fi
+
+go_run="go run"
+if [ -n "$arg_watch" ]; then
+    if ! which rego &> /dev/null; then
+	   if ! go get -u sourcegraph.com/sqs/rego; then
+		  echo "api: failed to install rego" >&2
+		  exit 1
+	   fi
+    fi
+    
+    go_run=rego
+fi
+
+$go_run .

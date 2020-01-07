@@ -1,6 +1,0 @@
-[Db]
-Host = "localhost:5432"
-SSLMode = "disable"
-Name = "dev-time-tracker"
-User = "dev-time-tracker"
-Password = "dev-time-tracker"
