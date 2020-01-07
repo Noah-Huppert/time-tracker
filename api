@@ -6,7 +6,7 @@ fi
 go_run="go run"
 if [ -n "$arg_watch" ]; then
     if ! which rego &> /dev/null; then
-	   if ! go get -u sourcegraph.com/sqs/rego; then
+	   if ! go get -u github.com/sqs/rego; then
 		  echo "api: failed to install rego" >&2
 		  exit 1
 	   fi
@@ -15,4 +15,5 @@ if [ -n "$arg_watch" ]; then
     go_run=rego
 fi
 
-$go_run .
+set -x
+$go_run . "$@"
