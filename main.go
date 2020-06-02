@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -15,7 +16,8 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	migratePostgres "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/labstack/echo"
+	"github.com/gorilla/mux"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
@@ -72,6 +74,168 @@ func (c Config) Redact(redact bool, raw string) string {
 	}
 }
 
+// RouteHandler responds to HTTP endpoint requests
+type RouteHandler interface {
+	// Handle
+	Handle(c RouteContext) Responder
+}
+
+// Responder responds to requests
+type Responder interface {
+	// Respond to request
+	Respond(c RouteContext) error
+
+	// FinishResponse returns if this responder should complete the process
+	// of handling a request.
+	FinishResponse() bool
+}
+
+// RouteContext is a custom echo.Context which contains custom fields
+// for API routes
+type RouteContext interface {
+	// Request to route
+	Request() *http.Request
+
+	// Writer for route
+	Writer() http.ResponseWriter
+
+	// Log information
+	Log() golog.Logger
+}
+
+// DefaultRouteContext is a default implementation of RouteContext
+type DefaultRouteContext struct {
+	// request
+	request *http.Request
+
+	// writer
+	writer http.ResponseWriter
+
+	// log
+	log golog.Logger
+}
+
+// Request
+func (c DefaultRouteContext) Request() *http.Request {
+	return c.request
+}
+
+// Writer
+func (c DefaultRouterContext) Writer() http.ResponseWriter {
+	return c.writer
+}
+
+// Log
+func (c DefaultRouterContext) Log() golog.Logger {
+	return c.log
+}
+
+// StatusResponder writes a response status.
+type StatusResponder struct {
+	// Status to code
+	Status int
+}
+
+// NewStatusResponder creates a StatusResponder.
+func NewStatusResponder(status int) StatusResponder {
+	return StatusResponder{
+		Status: status,
+	}
+}
+
+// Respond
+func (r StatusResponder) Respond(c RouteContext) error {
+	c.Writer().WriteHeader(r.Status)
+}
+
+// FinishResponse indicates a response is not finished, so a body can
+// be written.
+func (r StatusResponder) FinishResponse() bool {
+	return false
+}
+
+// JSONResponder is a responder which writes data as JSON.
+type JSONResponder struct {
+	// Status
+	Status StatusResponder
+
+	// Data to respond
+	Data interface{}
+}
+
+// NewJSONResponder creates a JSONResponder.
+func NewJSONResponder(data interface{}) JSONResponder {
+	return JSONResponder{
+		Data: data,
+	}
+}
+
+// Respond
+func (r JSONResponder) Respond(c RouteContext) error {
+	encoder := json.NewEncoder(c.Writer())
+
+	if err := encoder.Encode(r.Data); err != nil {
+		return fmt.ErrorF("failed to JSON encode: %s", err)
+	}
+
+	return nil
+}
+
+// FinishResponse ends a response so all data is JSON encoded.
+func (r JSONRespondeR) FinishResponse() bool {
+	return true
+}
+
+// AuthValid ensures a valid authentication token is present in the
+// Authorization header.
+func AuthValid(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c RouteContext) error {
+		auth := c.Request().Header.Get("Authorization")
+		if len(auth) == 0 {
+			return echo.NewHTTPError(http.StatusUnauthorized,
+				"no credentials provided")
+		}
+
+		return next(c)
+	}
+}
+
+// RoutesWrapper wraps Routes in a Handler
+type RouteWrapper struct {
+	// Routes to wrap
+	Routes []Route
+
+	// Log
+	Log golog.Logger
+}
+
+// ServeHTTP calls all routes in sequential order, stops the first Route which
+// writes to the response.
+func (r WrouteWrapper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	routeCtx := DefaultRouteContext{
+		request: r,
+		writer:  w,
+		log:     r.Log.GetChild(fmt.Sprintf("%s %s", r.Method, r.URL)),
+	}
+
+	for route := range r.Routes {
+		resp := route.Handle(routeCtx)
+		err := resp.Respond(routeCtx)
+		if err != nil {
+			routeCtx.Log().Errorf("responder failed: %s", err)
+
+			errResp := NewJSONResponder(map[string]interface{}{
+				"error": "internal server error",
+			})
+
+			if err := errResp.Respond(routeCtx); err != nil {
+				routeCtx.Log().Errorf("failed to send internal server "+
+					"error response after responder failed: %s", err)
+			}
+		}
+	}
+}
+
 func main() {
 	ctxPair := gointerrupt.NewCtxPair(context.Background())
 	log := golog.NewLogger("api")
@@ -95,6 +259,11 @@ func main() {
 		log.Fatalf("failed to ping db \"%s\": %s", cfg.DBURI(true), err)
 	}
 
+	dbx, err := sqlx.NewDb(db, "postgres")
+	if err != nil {
+		log.Fatalf("failed to initialize db library: %s", err)
+	}
+
 	// Determine what to do
 	cmdArg := ""
 	if len(os.Args) >= 2 {
@@ -107,11 +276,16 @@ func main() {
 
 		// API routes
 		e := echo.New()
-		e.GET("/health", func(c echo.Context) error {
+		e.GET("/api/v0/health", func(c echo.Context) error {
 			c.JSON(http.StatusOK, map[string]interface{}{
 				"ok": true,
 			})
 			return nil
+		})
+
+		resCfg := map[string]ResourceRouteCfg{}
+		e.Any("/api/v0/:resource", func(c echo.Context) error {
+
 		})
 
 		// Start API server
@@ -129,9 +303,14 @@ func main() {
 		// Gracefully shutdown server
 		go func() {
 			<-ctxPair.Graceful().Done()
+
+			log.Info("shutting down HTTP server gracefully")
+
 			if err := e.Shutdown(ctxPair.Harsh()); err != nil {
 				log.Fatalf("failed to shutdown HTTP server: %s", err)
 			}
+
+			log.Info("shut down HTTP server")
 		}()
 
 		wg.Wait()
@@ -167,6 +346,7 @@ func main() {
 		}
 
 		// Get post migration status
+
 		version, dirty, err = migrator.Version()
 		if err != nil {
 			log.Fatalf("failed to get post migration status: %s", err)

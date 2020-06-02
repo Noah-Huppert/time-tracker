@@ -1,19 +1,26 @@
 #!/usr/bin/env bash
 if [[ "$1" == "-w" ]]; then
     arg_watch=isset
+    shift
 fi
 
-go_run="go run"
+set -xb
 if [ -n "$arg_watch" ]; then
-    if ! which rego &> /dev/null; then
-	   if ! go get -u github.com/sqs/rego; then
-		  echo "api: failed to install rego" >&2
+    if ! which reflect &> /dev/null; then
+	   if ! go get github.com/cespare/reflex; then
+		  echo "api: failed to install tool: reflect" >&2
 		  exit 1
 	   fi
     fi
-    
-    go_run=rego
-fi
 
-set -x
-$go_run . "$@"
+    # -d none: Don't preprend output with anything
+    # --start-service: Indicates program is expected to run for a long time
+    # -g *.go: Watch for changes on any Go files
+    reflex \
+	   -d none \
+	   --start-service \
+	   -g *.go \
+	   -- go run . "$@"
+else
+    go run . "$@"
+fi
