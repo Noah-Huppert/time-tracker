@@ -5,4 +5,4 @@ Track time spent on projects.
 - [Overview](#overview)
 
 # Overview
-Go API, Postgres data store, CLI, maybe a Flutter app.
+Given a folder full of CSV files produce a CSV of each month's times.
