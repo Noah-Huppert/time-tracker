@@ -1,2 +1,2 @@
-# Flutter log files
-*.log
+times/
+reports/
