@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	golangLog "log"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -93,6 +94,19 @@ var ValidPeriodStrs = []string{
 // ValidPeriodStrsJoined is a user friendly string listing values from ValidPeriodStrs
 var ValidPeriodStrJoined = strings.Join(ValidPeriodStrs, ", ")
 
+// FormatOutputDuration formats a duration for output like: HH:MM:SS
+func FormatOutputDuration(dur time.Duration) string {
+	hours := int(math.Floor(dur.Hours()))
+	dur -= time.Hour * time.Duration(hours)
+
+	minutes := int(math.Floor(dur.Minutes()))
+	dur -= time.Minute * time.Duration(minutes)
+
+	seconds := int(math.Floor(dur.Seconds()))
+
+	return fmt.Sprintf("%02d:%02d:%02d", hours, minutes, seconds)
+}
+
 // ParsePeriod takes a str and converts it to a duration. See Period... constants
 func ParsePeriod(str string) (time.Duration, error) {
 	if str == PeriodWeeklyStr {
@@ -176,7 +190,7 @@ func (m DirOutputMode) writePeriodReport(period BillingPeriod, csvCols TimeTrack
 		err = writer.Write([]string{
 			entry.StartTime.String(),
 			entry.EndTime.String(),
-			entry.Duration().String(),
+			FormatOutputDuration(entry.Duration()),
 			entry.Comment,
 		})
 		if err != nil {
@@ -218,7 +232,7 @@ func (m DirOutputMode) writeRollup(periods []BillingPeriod, csvCols TimeTrackerR
 		err = writer.Write([]string{
 			period.StartTime.String(),
 			period.EndTime.String(),
-			period.Duration().String(),
+			FormatOutputDuration(period.Duration()),
 		})
 		if err != nil {
 			return fmt.Errorf("failed to write period %s-%s to report file '%s': %s", period.StartTime.String(), period.EndTime.String(), outFile, err)
