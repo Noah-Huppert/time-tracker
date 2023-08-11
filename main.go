@@ -7,6 +7,7 @@ import (
 	golangLog "log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -101,6 +102,57 @@ func ParsePeriod(str string) (time.Duration, error) {
 	return time.Hour * 0, fmt.Errorf("invalid period '%s', valid values: %s", str, ValidPeriodStrJoined)
 }
 
+const OutputModesHelpStr = "print (Print to console), dir=<DIR> (Output CSVs to <DIR> directory)"
+
+type OutputMode interface {
+	Output(periods []BillingPeriod) error
+}
+
+type PrintOutputMode struct{}
+
+func (m PrintOutputMode) Output(periods []BillingPeriod) error {
+	for _, period := range periods {
+		fmt.Printf("\nPeriod: %s - %s - %s\n", period.StartTime, period.EndTime, period.Duration())
+		fmt.Println("============")
+
+		for _, entry := range period.Entries {
+			comment := ""
+			if len(entry.Comment) > 0 {
+				comment = fmt.Sprintf(" (%s)", entry.Comment)
+			}
+
+			fmt.Printf("%s - %s%s - %s\n", entry.StartTime, entry.EndTime, comment, entry.Duration())
+		}
+	}
+
+	return nil
+}
+
+type DirOutputMode struct {
+	Dir string
+}
+
+func (m DirOutputMode) Output(periods []BillingPeriod) error {
+	return nil
+}
+
+func ParseOutputMode(str string) (OutputMode, error) {
+	dirRegex, err := regexp.Compile("^dir=(.*)$")
+	if err != nil {
+		return nil, fmt.Errorf("failed to compile regex to detect dir mode: %s", err)
+	}
+
+	if str == "print" {
+		return PrintOutputMode{}, nil
+	} else if matches := dirRegex.FindStringSubmatch(str); len(matches) > 0 {
+		return DirOutputMode{
+			Dir: matches[0],
+		}, nil
+	}
+
+	return nil, fmt.Errorf("string '%s' did not match any output modes, valid output modes: %s", str, OutputModesHelpStr)
+}
+
 func main() {
 	// Setup logger
 	logger, err := zap.NewDevelopment()
@@ -118,9 +170,6 @@ func main() {
 	var inDir string
 	flag.StringVar(&inDir, "in-dir", "times", "Directory containing time tracking CSV files")
 
-	var outDir string
-	flag.StringVar(&outDir, "out-dir", "reports", "Directory where reports for each billing period will be written")
-
 	var billingPeriod string
 	flag.StringVar(&billingPeriod, "billing-period", PeriodBiWeeklyStr, fmt.Sprintf("How often bills will be issued, valid values: %s", ValidPeriodStrJoined))
 
@@ -133,12 +182,20 @@ func main() {
 	var columnComment string
 	flag.StringVar(&columnComment, "column-comment", "comment", "Name of column which contains an optional description of what happened during the time period")
 
+	var outputModeStr string
+	flag.StringVar(&outputModeStr, "output", "dir=report", fmt.Sprintf("Output mode, valid values: %s", OutputModesHelpStr))
+
 	flag.Parse()
 
 	// Convert options into programmatic values
 	billingPeriodDuration, err := ParsePeriod(billingPeriod)
 	if err != nil {
 		logger.Fatal("failed to parse billing-period option", zap.Error(err))
+	}
+
+	outputMode, err := ParseOutputMode(outputModeStr)
+	if err != nil {
+		logger.Fatal("failed to parse output-mode option", zap.Error(err))
 	}
 
 	// Read in data
@@ -260,17 +317,11 @@ func main() {
 		currentBillingPeriod.Entries = append(currentBillingPeriod.Entries, entry)
 	}
 
-	for _, period := range billingPeriods {
-		fmt.Printf("\nPeriod: %s - %s - %s\n", period.StartTime, period.EndTime, period.Duration())
-		fmt.Println("============")
+	billingPeriods = append(billingPeriods, currentBillingPeriod)
 
-		for _, entry := range period.Entries {
-			comment := ""
-			if len(entry.Comment) > 0 {
-				comment = fmt.Sprintf(" (%s)", entry.Comment)
-			}
-
-			fmt.Printf("%s - %s%s - %s\n", entry.StartTime, entry.EndTime, comment, entry.Duration())
-		}
+	// Output
+	logger.Debug("is", zap.String("outputMode", fmt.Sprintf("%#v", outputMode)))
+	if err := outputMode.Output(billingPeriods); err != nil {
+		logger.Fatal("failed to output reports", zap.Error(err))
 	}
 }
