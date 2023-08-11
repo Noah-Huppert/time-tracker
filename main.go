@@ -123,21 +123,24 @@ func ParsePeriod(str string) (time.Duration, error) {
 const OutputModesHelpStr = "print (Print to console), dir=<DIR> (Output CSVs to <DIR> directory)"
 
 type OutputMode interface {
-	Output(periods []BillingPeriod, csvCols TimeTrackerReportCSVColumns) error
+	Output(opts TimeTrackerOutputOpts) error
 }
 
-type TimeTrackerReportCSVColumns struct {
+type TimeTrackerOutputOpts struct {
+	Periods         []BillingPeriod
+	HourlyRate      float64
 	ColumnStartTime string
 	ColumnEndTime   string
 	ColumnDuration  string
+	ColumnAmountDue string
 	ColumnComment   string
 }
 
 type PrintOutputMode struct{}
 
-func (m PrintOutputMode) Output(periods []BillingPeriod, csvCols TimeTrackerReportCSVColumns) error {
-	for _, period := range periods {
-		fmt.Printf("\nPeriod: %s - %s - %s\n", period.StartTime, period.EndTime, period.Duration())
+func (m PrintOutputMode) Output(opts TimeTrackerOutputOpts) error {
+	for _, period := range opts.Periods {
+		fmt.Printf("\nPeriod: %s - %s - %s - $%f\n", period.StartTime, period.EndTime, FormatOutputDuration(period.Duration()), period.Duration().Hours()*opts.HourlyRate)
 		fmt.Println("============")
 
 		for _, entry := range period.Entries {
@@ -146,7 +149,7 @@ func (m PrintOutputMode) Output(periods []BillingPeriod, csvCols TimeTrackerRepo
 				comment = fmt.Sprintf(" (%s)", entry.Comment)
 			}
 
-			fmt.Printf("%s - %s%s - %s\n", entry.StartTime, entry.EndTime, comment, entry.Duration())
+			fmt.Printf("%s - %s%s - %s\n", entry.StartTime, entry.EndTime, comment, FormatOutputDuration(entry.Duration()))
 		}
 	}
 
@@ -157,7 +160,7 @@ type DirOutputMode struct {
 	Dir string
 }
 
-func (m DirOutputMode) writePeriodReport(period BillingPeriod, csvCols TimeTrackerReportCSVColumns) error {
+func (m DirOutputMode) writePeriodReport(opts TimeTrackerOutputOpts, period BillingPeriod) error {
 	// Open file
 	wd, err := os.Getwd()
 	if err != nil {
@@ -176,10 +179,10 @@ func (m DirOutputMode) writePeriodReport(period BillingPeriod, csvCols TimeTrack
 
 	// Write header
 	err = writer.Write([]string{
-		csvCols.ColumnStartTime,
-		csvCols.ColumnEndTime,
-		csvCols.ColumnDuration,
-		csvCols.ColumnComment,
+		opts.ColumnStartTime,
+		opts.ColumnEndTime,
+		opts.ColumnDuration,
+		opts.ColumnComment,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to write headers to report file '%s': %s", outFile, err)
@@ -201,7 +204,7 @@ func (m DirOutputMode) writePeriodReport(period BillingPeriod, csvCols TimeTrack
 	return nil
 }
 
-func (m DirOutputMode) writeRollup(periods []BillingPeriod, csvCols TimeTrackerReportCSVColumns) error {
+func (m DirOutputMode) writeRollup(opts TimeTrackerOutputOpts) error {
 	// Open file
 	wd, err := os.Getwd()
 	if err != nil {
@@ -220,19 +223,21 @@ func (m DirOutputMode) writeRollup(periods []BillingPeriod, csvCols TimeTrackerR
 
 	// Write header
 	err = writer.Write([]string{
-		csvCols.ColumnStartTime,
-		csvCols.ColumnEndTime,
-		csvCols.ColumnDuration,
+		opts.ColumnStartTime,
+		opts.ColumnEndTime,
+		opts.ColumnDuration,
+		opts.ColumnAmountDue,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to write headers to report file '%s': %s", outFile, err)
 	}
 
-	for _, period := range periods {
+	for _, period := range opts.Periods {
 		err = writer.Write([]string{
 			period.StartTime.String(),
 			period.EndTime.String(),
 			FormatOutputDuration(period.Duration()),
+			fmt.Sprintf("%f", period.Duration().Hours()*opts.HourlyRate),
 		})
 		if err != nil {
 			return fmt.Errorf("failed to write period %s-%s to report file '%s': %s", period.StartTime.String(), period.EndTime.String(), outFile, err)
@@ -242,16 +247,16 @@ func (m DirOutputMode) writeRollup(periods []BillingPeriod, csvCols TimeTrackerR
 	return nil
 }
 
-func (m DirOutputMode) Output(periods []BillingPeriod, csvCols TimeTrackerReportCSVColumns) error {
+func (m DirOutputMode) Output(opts TimeTrackerOutputOpts) error {
 	// Record billing periods
-	for _, period := range periods {
-		if err := m.writePeriodReport(period, csvCols); err != nil {
+	for _, period := range opts.Periods {
+		if err := m.writePeriodReport(opts, period); err != nil {
 			return err
 		}
 	}
 
 	// Record rollup of periods
-	if err := m.writeRollup(periods, csvCols); err != nil {
+	if err := m.writeRollup(opts); err != nil {
 		return err
 	}
 
@@ -283,6 +288,7 @@ type TimeTrackerReportOpts struct {
 	InDir           string
 	BillingPeriod   time.Duration
 	Timezone        string
+	HourlyRate      float64
 	ColumnStartTime string
 	ColumnEndTime   string
 	ColumnComment   string
@@ -319,6 +325,9 @@ func (t *TimeTracker) CLI() {
 	var timeZone string
 	flag.StringVar(&timeZone, "timezone", "EST", "timezone in which input and output times are in")
 
+	var hourlyRate float64
+	flag.Float64Var(&hourlyRate, "hourly-rate", 1, "hourly rate")
+
 	var columnStartTime string
 	flag.StringVar(&columnStartTime, "column-start-time", "time started", "Name of column which contains start time in format (24 hour time): YYYY-MM-DD HH:MM:SS")
 
@@ -349,6 +358,7 @@ func (t *TimeTracker) CLI() {
 		InDir:           inDir,
 		BillingPeriod:   billingPeriodDuration,
 		Timezone:        timeZone,
+		HourlyRate:      hourlyRate,
 		ColumnStartTime: columnStartTime,
 		ColumnEndTime:   columnEndTime,
 		ColumnComment:   columnComment,
@@ -604,13 +614,16 @@ func (t *TimeTracker) Report(opts TimeTrackerReportOpts) error {
 	billingPeriods = append(billingPeriods, currentBillingPeriod)
 
 	// Output
-	reportCols := TimeTrackerReportCSVColumns{
+	outputOpts := TimeTrackerOutputOpts{
+		Periods:         billingPeriods,
+		HourlyRate:      opts.HourlyRate,
 		ColumnStartTime: opts.ColumnStartTime,
 		ColumnEndTime:   opts.ColumnEndTime,
 		ColumnComment:   opts.ColumnComment,
 		ColumnDuration:  "duration",
+		ColumnAmountDue: "amount due",
 	}
-	if err := opts.OutputMode.Output(billingPeriods, reportCols); err != nil {
+	if err := opts.OutputMode.Output(outputOpts); err != nil {
 		return fmt.Errorf("failed to output reports: %s", err)
 	}
 
