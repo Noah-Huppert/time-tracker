@@ -38,5 +38,12 @@ go run . -billing-period monthly -hourly-rate 30.0
 
 A more advanced run with every option:
 ```
-go run . -column-start-date start -column-end-date end -timezone PDT -in-dir ./time-sheets -billing-period weekly -hourly-rate 30.0 -output dir=out-reports
+go run . \
+    -column-start-date start \
+    -column-end-date end \
+    -timezone PDT \
+    -in-dir ./time-sheets \
+    -billing-period weekly \
+    -hourly-rate 30.0 \
+    -output dir=out-reports
 ```
