@@ -37,11 +37,31 @@ func (e TimeEntry) Hash() (string, error) {
 	return fmt.Sprintf("%d", hash), nil
 }
 
+func (e TimeEntry) Duration() time.Duration {
+	return e.EndTime.Sub(e.StartTime)
+}
+
+type BillingPeriod struct {
+	StartTime time.Time
+	EndTime   time.Time
+	Entries   []TimeEntry
+}
+
+func (p BillingPeriod) Duration() time.Duration {
+	var total time.Duration = 0
+
+	for _, entry := range p.Entries {
+		total += entry.Duration()
+	}
+
+	return total
+}
+
 // TimeFormat represents YYYY-MM-DD HH:MM:SS
 const TimeFormat = "2006-01-02 15:04:05"
 
 // PeriodWeekly is a week duration
-const PeriodWeekly = time.Hour * 24
+const PeriodWeekly = time.Hour * 24 * 7
 
 // PeriodBiWeekly is a 2 week duration
 const PeriodBiWeekly = PeriodWeekly * 2
@@ -102,7 +122,7 @@ func main() {
 	flag.StringVar(&outDir, "out-dir", "reports", "Directory where reports for each billing period will be written")
 
 	var billingPeriod string
-	flag.StringVar(&billingPeriod, "billing-period", "bi-weekly", fmt.Sprintf("How often bills will be issued, valid values: %s", ValidPeriodStrJoined))
+	flag.StringVar(&billingPeriod, "billing-period", PeriodBiWeeklyStr, fmt.Sprintf("How often bills will be issued, valid values: %s", ValidPeriodStrJoined))
 
 	var columnStartTime string
 	flag.StringVar(&columnStartTime, "column-start-time", "time started", "Name of column which contains start time in format (24 hour time): YYYY-MM-DD HH:MM:SS")
@@ -214,23 +234,43 @@ func main() {
 	periodStart := time.Date(firstStartDate.Year(), firstStartDate.Month(), 1, 0, 0, 0, 0, firstStartDate.Location())
 	periodEnd := periodStart.Add(billingPeriodDuration)
 
-	billingPeriods := [][]time.Time{
-		{periodStart, periodEnd},
+	currentBillingPeriod := BillingPeriod{
+		StartTime: periodStart,
+		EndTime:   periodEnd,
+		Entries:   []TimeEntry{},
 	}
-	timeEntriesByPeriodStart := make(map[time.Time][]TimeEntry)
-	timeEntriesByPeriodStart[periodStart] = []TimeEntry{}
+	billingPeriods := []BillingPeriod{}
 
 	for _, entry := range timeEntriesList {
 		// Check if starting a new period
 		if entry.StartTime.After(periodEnd) {
+			billingPeriods = append(billingPeriods, currentBillingPeriod)
+
 			periodStart = periodStart.Add(billingPeriodDuration)
 			periodEnd = periodEnd.Add(billingPeriodDuration)
 
-			billingPeriods = append(billingPeriods, []time.Time{periodStart, periodEnd})
-			timeEntriesByPeriodStart[periodStart] = []TimeEntry{}
+			currentBillingPeriod = BillingPeriod{
+				StartTime: periodStart,
+				EndTime:   periodEnd,
+				Entries:   []TimeEntry{},
+			}
 		}
 
 		// Add time entry
-		timeEntriesByPeriodStart[periodStart] = append(timeEntriesByPeriodStart[periodStart], entry)
+		currentBillingPeriod.Entries = append(currentBillingPeriod.Entries, entry)
+	}
+
+	for _, period := range billingPeriods {
+		fmt.Printf("\nPeriod: %s - %s - %s\n", period.StartTime, period.EndTime, period.Duration())
+		fmt.Println("============")
+
+		for _, entry := range period.Entries {
+			comment := ""
+			if len(entry.Comment) > 0 {
+				comment = fmt.Sprintf(" (%s)", entry.Comment)
+			}
+
+			fmt.Printf("%s - %s%s - %s\n", entry.StartTime, entry.EndTime, comment, entry.Duration())
+		}
 	}
 }
