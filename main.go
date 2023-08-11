@@ -162,12 +162,7 @@ type DirOutputMode struct {
 
 func (m DirOutputMode) writePeriodReport(opts TimeTrackerOutputOpts, period BillingPeriod) error {
 	// Open file
-	wd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get working directory: %s", err)
-	}
-
-	outFile := filepath.Join(wd, m.Dir, fmt.Sprintf("bill-%s-%s.csv", period.StartTime.Format(FilePathTimeFormat), period.EndTime.Format(FilePathTimeFormat)))
+	outFile := filepath.Join(m.Dir, fmt.Sprintf("bill-%s-%s.csv", period.StartTime.Format(FilePathTimeFormat), period.EndTime.Format(FilePathTimeFormat)))
 
 	f, err := os.OpenFile(outFile, os.O_CREATE|os.O_RDWR, 0660)
 	if err != nil {
@@ -206,12 +201,7 @@ func (m DirOutputMode) writePeriodReport(opts TimeTrackerOutputOpts, period Bill
 
 func (m DirOutputMode) writeRollup(opts TimeTrackerOutputOpts) error {
 	// Open file
-	wd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get working directory: %s", err)
-	}
-
-	outFile := filepath.Join(wd, m.Dir, "billing-periods.csv")
+	outFile := filepath.Join(m.Dir, "billing-periods.csv")
 
 	f, err := os.OpenFile(outFile, os.O_CREATE|os.O_RDWR, 0660)
 	if err != nil {
@@ -248,6 +238,17 @@ func (m DirOutputMode) writeRollup(opts TimeTrackerOutputOpts) error {
 }
 
 func (m DirOutputMode) Output(opts TimeTrackerOutputOpts) error {
+	// Check if directory exists
+	if _, err := os.Stat(filepath.Join()); err != nil {
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("failed to determine if directory '%s' exists: %s", m.Dir, err)
+		}
+
+		if err := os.Mkdir(m.Dir, 0660); err != nil {
+			return fmt.Errorf("failed to create directory '%s': %s", m.Dir, err)
+		}
+	}
+
 	// Record billing periods
 	for _, period := range opts.Periods {
 		if err := m.writePeriodReport(opts, period); err != nil {
@@ -272,8 +273,15 @@ func ParseOutputMode(str string) (OutputMode, error) {
 	if str == "print" {
 		return PrintOutputMode{}, nil
 	} else if matches := dirRegex.FindStringSubmatch(str); len(matches) > 0 {
+		dir := matches[1]
+
+		wd, err := os.Getwd()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get working directory: %s", err)
+		}
+
 		return DirOutputMode{
-			Dir: matches[1],
+			Dir: filepath.Join(wd, dir),
 		}, nil
 	}
 
