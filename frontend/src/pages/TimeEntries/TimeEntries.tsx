@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, TimeEntrySchemaType } from "../../lib/api";
 import {
+  Box,
   Button,
   CircularProgress,
+  IconButton,
   Paper,
   Table,
   TableBody,
@@ -15,6 +17,7 @@ import {
 import WarningIcon from "@mui/icons-material/Warning";
 import { isLeft } from "fp-ts/lib/Either";
 import { DateTimePicker } from "@mui/x-date-pickers";
+import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 
 type WebDataTimeEntriesList = TimeEntrySchemaType[] | "loading" | "error"
 
@@ -44,18 +47,48 @@ export const PageTimeEntries = () => {
 
   return (
     <>
-      <DateFilter
-        label="Start Time"
-        value={filterStartTime}
-        onChange={setFilterStartTime}
-      />
+      <Box
+        sx={{
+          padding: "1rem",
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            marginTop: "1rem",
+          }}
+        >
+          <DateFilter
+            label="Start Time"
+            value={filterStartTime}
+            onChange={setFilterStartTime}
+          />
 
-      <DateFilter
-        label="End Time"
-        value={filterEndTime}
-        onChange={setFilterEndTime}
-      />
-      <TimeEntriesTable timeEntries={timeEntries} />
+          <Typography
+            sx={{
+              marginRight: "1rem",
+            }}
+          >
+            To
+          </Typography>
+
+          <DateFilter
+            label="End Time"
+            value={filterEndTime}
+            onChange={setFilterEndTime}
+          />
+        </Box>
+
+        <Button
+          variant="contained"
+        >
+          Create Invoice
+        </Button>
+
+        <TimeEntriesTable timeEntries={timeEntries} />
+      </Box>
     </>
   )
 };
@@ -71,19 +104,18 @@ const DateFilter = ({
 }) => {
   return (
     <>
-      <Typography>
-        {label}
-      </Typography>
-
       <DateTimePicker
+        label={label}
         value={value}
         onChange={onChange}
       />
 
       {value !== null && (
-        <Button onClick={() => onChange(null)}>
-          Clear
-        </Button>
+        <IconButton
+          onClick={() => onChange(null)}
+        >
+          <HighlightOffIcon />
+        </IconButton>
       )}
     </>
   )
