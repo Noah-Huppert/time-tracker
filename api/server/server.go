@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/Noah-Huppert/gointerrupt"
 	"github.com/Noah-Huppert/time-tracker/api/models"
@@ -118,10 +119,34 @@ type EPHealthResp struct {
 	OK bool `json:"ok"`
 }
 
-// EPTimeEntriesList lists time entries
+// EPTimeEntriesList lists time entries.
+// The start_time and end_time query params can be used to filter the range of time entries returned.
+// Times should be in ISO-8601 format.
 func (s Server) EPTimeEntriesList(c *fiber.Ctx) error {
+	// Query params
+	listOpts := models.ListTimeEntriesOpts{
+		StartTime: nil,
+		EndTime:   nil,
+	}
+
+	if startTimeQuery, ok := c.Queries()["start_time"]; ok {
+		startTime, err := time.Parse(time.RFC3339, startTimeQuery)
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("failed to parse start_time '%s' as ISO-8601 date: %s", startTimeQuery, err))
+		}
+		listOpts.StartTime = &startTime
+	}
+
+	if endTimeQuery, ok := c.Queries()["end_time"]; ok {
+		endTime, err := time.Parse(time.RFC3339, endTimeQuery)
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("failed to parse end_time '%s' as ISO-8601 date: %s", endTimeQuery, err))
+		}
+		listOpts.EndTime = &endTime
+	}
+
 	// Get time entries
-	timeEntries, err := s.timeEntryRepo.List()
+	timeEntries, err := s.timeEntryRepo.List(listOpts)
 	if err != nil {
 		return fmt.Errorf("failed to list time entries: %s", err)
 	}

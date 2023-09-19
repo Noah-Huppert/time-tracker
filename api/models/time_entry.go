@@ -41,7 +41,15 @@ func (e TimeEntry) Duration() time.Duration {
 // TimeEntryRepo are functions to query and retrieve TimeEntries
 type TimeEntryRepo interface {
 	// List time entries sorted earliest to latest
-	List() ([]TimeEntry, error)
+	List(opts ListTimeEntriesOpts) ([]TimeEntry, error)
+}
+
+type ListTimeEntriesOpts struct {
+	// StartTime indicates only time entries which started after (inclusive) this date should be returned
+	StartTime *time.Time
+
+	// EndTime indicates only time entries which started before (inclusive) this date should be returned
+	EndTime *time.Time
 }
 
 // CSVTimeEntryRepo implements TimeEntryRepo by loading CSV files from a directory
@@ -94,7 +102,7 @@ func NewCSVTimeEntryRepo(opts NewCSVTimeEntryRepoOpts) CSVTimeEntryRepo {
 	}
 }
 
-func (r CSVTimeEntryRepo) List() ([]TimeEntry, error) {
+func (r CSVTimeEntryRepo) List(opts ListTimeEntriesOpts) ([]TimeEntry, error) {
 	// Read in data
 	inFileNames, err := os.ReadDir(r.inDir)
 	if err != nil {
@@ -177,6 +185,20 @@ func (r CSVTimeEntryRepo) List() ([]TimeEntry, error) {
 		return timeEntriesList[i].StartTime.Before(timeEntriesList[j].StartTime)
 	})
 
+	// Filter
+	filteredTimeEntries := []TimeEntry{}
+	for _, entry := range timeEntriesList {
+		if opts.StartTime != nil && entry.StartTime.Before(*opts.StartTime) {
+			continue
+		}
+
+		if opts.EndTime != nil && entry.StartTime.After(*opts.EndTime) {
+			continue
+		}
+
+		filteredTimeEntries = append(filteredTimeEntries, entry)
+	}
+
 	// Done
-	return timeEntriesList, nil
+	return filteredTimeEntries, nil
 }
