@@ -8,3 +8,13 @@ services:
     volumes:
       - ./:/opt/time-tracker/
     restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: dev.Dockerfile
+    ports:
+      - 4001:4001
+    volumes:
+      - ./:/opt/time-tracker/
+    restart: always

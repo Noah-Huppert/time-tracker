@@ -2,21 +2,22 @@ FROM golang:1.21.1-alpine3.18
 
 # Create development user
 ARG CONTAINER_USER_ID=1000
-RUN adduser -D -u ${CONTAINER_USER_ID} api
+ARG CONTAINER_USER_NAME=api
+RUN adduser -D -u ${CONTAINER_USER_ID} ${CONTAINER_USER_NAME}
 
 # Install packages
 RUN apk update && apk add bash
 
 # Create working directory
 RUN mkdir -p /opt/time-tracker/api/
-RUN chown -R api /opt/time-tracker/api
+RUN chown -R ${CONTAINER_USER_NAME} /opt/time-tracker/api
 
 # Drop down into app user
-USER api
+USER ${CONTAINER_USER_NAME}
 WORKDIR /opt/time-tracker/api
 
 # Install dev dependencies
-COPY --chown=api:api ./go.mod ./go.sum ./
+COPY --chown=${CONTAINER_USER_NAME}:${CONTAINER_USER_NAME} ./go.mod ./go.sum ./
 
 RUN go get github.com/Noah-Huppert/goup@term-config && go install github.com/Noah-Huppert/goup
 
