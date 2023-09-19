@@ -10,6 +10,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Typography,
 } from "@mui/material";
 import WarningIcon from "@mui/icons-material/Warning";
 import { isLeft } from "fp-ts/lib/Either";
@@ -70,9 +71,9 @@ const DateFilter = ({
 }) => {
   return (
     <>
-      <p>
+      <Typography>
         {label}
-      </p>
+      </Typography>
 
       <DateTimePicker
         value={value}
@@ -98,7 +99,7 @@ const TimeEntriesTable = ({
     return (
       <>
         <CircularProgress />
-        <p>Loading time entries</p>
+        <Typography>Loading time entries</Typography>
       </>
     );
   }
@@ -108,7 +109,7 @@ const TimeEntriesTable = ({
     return (
       <>
         <WarningIcon />
-        <p>Failed to load time entries</p>
+        <Typography>Failed to load time entries</Typography>
       </>
     );
   }

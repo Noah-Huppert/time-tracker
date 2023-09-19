@@ -9,6 +9,11 @@ const timeEntrySchema = z.object({
 });
 export type TimeEntrySchemaType = z.infer<typeof timeEntrySchema>;
 
+const compensationSchema = z.object({
+  hourly_rate: z.number(),
+});
+export type CompensationSchemaType = z.infer<typeof compensationSchema>;
+
 const BASE_URL = "http://localhost:4000/api/v0/";
 
 async function makeReq<T>({
@@ -22,7 +27,7 @@ async function makeReq<T>({
   readonly method: string;
   readonly shape: z.Schema<T>;
   readonly queryParams?: {[key: string]: string | undefined | null};
-  readonly body?: string;
+  readonly body?: object;
 }): Promise<Either<Error, T>> {
   if (path[0] === "/") {
     return left(new Error("path argument cannot start with leading slash, as this will clobber the base URL"));
@@ -37,11 +42,23 @@ async function makeReq<T>({
       }
     });
   }
+
+  const headers: {[key: string]: string} = {};
+  if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
+
   const url = new URL(path, BASE_URL).href + "?" + new URLSearchParams(setQueryParams || {})
   const res = await fetch(url, {
     method,
-    body,
+    body: JSON.stringify(body),
+    headers,
   });
+
+  // Check response
+  if (res.status >= 299) {
+    return left(new Error(`request failed: ${res.status} - ${res.statusText}`));
+  }
 
   // Decode response
   const respBody = await res.json();
@@ -61,8 +78,8 @@ export const api = {
       startTime,
       endTime,
     }: {
-      readonly startTime?: Date
-      readonly endTime?: Date
+      readonly startTime: Date | null
+      readonly endTime: Date | null
     }) =>
       makeReq({
         path: "time-entries",
@@ -76,4 +93,25 @@ export const api = {
         }
       }),
   },
+
+  compensation: {
+    get: () => makeReq({
+      path: "compensation",
+      method: "GET",
+      shape: compensationSchema,
+    }),
+
+    set: ({
+      hourlyRate
+    }: {
+      readonly hourlyRate: number
+    }) => makeReq({
+      path: "compensation",
+      method: "PUT",
+      shape: compensationSchema,
+      body: {
+        hourly_rate: hourlyRate,
+      }
+    })
+  }
 };

@@ -7,6 +7,7 @@ import (
 
 	"github.com/Noah-Huppert/gointerrupt"
 	"github.com/Noah-Huppert/time-tracker/api/models"
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/contrib/fiberzap/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -18,8 +19,14 @@ type Server struct {
 	// logger is used to output messages
 	logger *zap.Logger
 
+	// validate is a validator instance
+	validate *validator.Validate
+
 	// timeEntryRepo is the time entry repository
 	timeEntryRepo models.TimeEntryRepo
+
+	// compRepo is the compensation repository
+	compRepo models.CompensationRepo
 }
 
 // NewServerOpts are options to create a new server
@@ -29,13 +36,18 @@ type NewServerOpts struct {
 
 	// TimeEntryRepo is the time entry repository
 	TimeEntryRepo models.TimeEntryRepo
+
+	// CompensationRepo is the compensation model repository
+	CompensationRepo models.CompensationRepo
 }
 
 // NewServer creates a new Server
 func NewServer(opts NewServerOpts) Server {
 	return Server{
 		logger:        opts.Logger,
+		validate:      validator.New(),
 		timeEntryRepo: opts.TimeEntryRepo,
+		compRepo:      opts.CompensationRepo,
 	}
 }
 
@@ -54,7 +66,11 @@ func (s Server) Listen(ctxPair gointerrupt.CtxPair, addr string) error {
 
 	// Setup routes
 	app.Get("/api/v0/health", s.EPHealth)
+
 	app.Get("/api/v0/time-entries", s.EPTimeEntriesList)
+
+	app.Get("/api/v0/compensation", s.EPCompensationGet)
+	app.Put("/api/v0/compensation", s.EPCompensationSet)
 
 	// Setup server graceful shutdown
 	shutdownErr := make(chan error, 1)
@@ -104,6 +120,18 @@ func (s Server) errorHandler(c *fiber.Ctx, err error) error {
 	return c.Status(code).JSON(ServerErrorResp{
 		Error: errTxt,
 	})
+}
+
+func (s Server) parseBody(c *fiber.Ctx, out interface{}) error {
+	if err := c.BodyParser(out); err != nil {
+		return fmt.Errorf("failed to parse body: %s", err)
+	}
+
+	if err := s.validate.Struct(out); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("invalid body: %s", err))
+	}
+
+	return nil
 }
 
 // EPHealth is the health check endpoint
@@ -176,8 +204,45 @@ type EPTimeEntriesListResp struct {
 	TimeEntries []TimeEntryListItem `json:"time_entries"`
 }
 
+// TimeEntryListItem is a time entry item in a list endpoint response
 type TimeEntryListItem struct {
 	models.TimeEntry
 
+	// Hash of the time entry, based on its content
 	Hash string `json:"hash"`
+}
+
+// EPCompensationGet gets compensation
+func (s Server) EPCompensationGet(c *fiber.Ctx) error {
+	comp, err := s.compRepo.Get()
+	if err != nil {
+		return fmt.Errorf("failed to get compensation: %s", err)
+	}
+
+	return c.JSON(comp)
+}
+
+// EPCompensationSet sets compensation
+func (s Server) EPCompensationSet(c *fiber.Ctx) error {
+	// Parse body
+	var body EPCompensationSetReq
+	if err := s.parseBody(c, &body); err != nil {
+		return err
+	}
+
+	// Set
+	newComp := models.Compensation{
+		HourlyRate: body.HourlyRate,
+	}
+	if err := s.compRepo.Set(newComp); err != nil {
+		return fmt.Errorf("failed to set compensation: %s", err)
+	}
+
+	return c.JSON(newComp)
+}
+
+// EPCompensationSetReq is the set compensation request body
+type EPCompensationSetReq struct {
+	// HourlyRate is the new hourly rate value
+	HourlyRate float32 `json:"hourly_rate" validate:"required"`
 }

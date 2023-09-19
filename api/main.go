@@ -42,11 +42,14 @@ func main() {
 	server := server.NewServer(server.NewServerOpts{
 		Logger: logger.With(zap.String("component", "api")),
 		TimeEntryRepo: models.NewCSVTimeEntryRepo(models.NewCSVTimeEntryRepoOpts{
-			InDir:           "./times",
+			InDir:           "./data/times",
 			Timezone:        "EST",
 			ColumnStartTime: "time started",
 			ColumnEndTime:   "time ended",
 			ColumnComment:   "comment",
+		}),
+		CompensationRepo: models.NewJSONCompensationRepo(models.NewJSONCompensationRepoOpts{
+			FilePath: "./data/compensation.json",
 		}),
 	})
 
