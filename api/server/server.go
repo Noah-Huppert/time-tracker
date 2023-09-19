@@ -8,6 +8,7 @@ import (
 	"github.com/Noah-Huppert/time-tracker/api/models"
 	"github.com/gofiber/contrib/fiberzap/v2"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"go.uber.org/zap"
 )
 
@@ -47,6 +48,8 @@ func (s Server) Listen(ctxPair gointerrupt.CtxPair, addr string) error {
 	app.Use(fiberzap.New(fiberzap.Config{
 		Logger: s.logger,
 	}))
+
+	app.Use(cors.New())
 
 	// Setup routes
 	app.Get("/api/v0/health", s.EPHealth)
@@ -117,18 +120,39 @@ type EPHealthResp struct {
 
 // EPTimeEntriesList lists time entries
 func (s Server) EPTimeEntriesList(c *fiber.Ctx) error {
+	// Get time entries
 	timeEntries, err := s.timeEntryRepo.List()
 	if err != nil {
 		return fmt.Errorf("failed to list time entries: %s", err)
 	}
 
+	// Get all their hashes
+	listItems := []TimeEntryListItem{}
+	for timeEntryI, timeEntry := range timeEntries {
+		hash, err := timeEntry.Hash()
+		if err != nil {
+			return fmt.Errorf("failed to hash time entry %d: %s", timeEntryI, err)
+		}
+
+		listItems = append(listItems, TimeEntryListItem{
+			TimeEntry: timeEntry,
+			Hash:      hash,
+		})
+	}
+
 	return c.JSON(EPTimeEntriesListResp{
-		TimeEntries: timeEntries,
+		TimeEntries: listItems,
 	})
 }
 
 // EPTimeEntriesListResp is the list time entries endpoint response
 type EPTimeEntriesListResp struct {
 	// TimeEntries is the list of time entries
-	TimeEntries []models.TimeEntry `json:"time_entries"`
+	TimeEntries []TimeEntryListItem `json:"time_entries"`
+}
+
+type TimeEntryListItem struct {
+	models.TimeEntry
+
+	Hash string `json:"hash"`
 }
