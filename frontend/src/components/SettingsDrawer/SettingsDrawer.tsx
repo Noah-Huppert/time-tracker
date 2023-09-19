@@ -1,23 +1,23 @@
 import { Button, CircularProgress, Drawer, TextField, Typography } from "@mui/material"
 import { useCallback, useContext, useEffect, useState } from "react"
-import { CompensationSchemaType, api } from "../../lib/api"
+import { InvoiceSettingsSchemaType, api } from "../../lib/api"
 import { isLeft } from "fp-ts/lib/Either"
 import WarningIcon from "@mui/icons-material/Warning";
 import { ToastCtx } from "../Toast/Toast";
 
-type DraftCompensation = {
+type DraftInvoiceSettings = {
   hourly_rate: string
 }
 
-function draftCompensationFromSchemaType(comp: CompensationSchemaType): DraftCompensation {
+function draftInvoiceSettingsFromSchemaType(settings: InvoiceSettingsSchemaType): DraftInvoiceSettings {
   return {
-    hourly_rate: comp.hourly_rate.toString(),
+    hourly_rate: settings.hourly_rate.toString(),
   }
 }
 
-function schemaCompensationFromDraftType(comp: DraftCompensation): CompensationSchemaType {
+function schemaInvoiceSettingsFromDraftType(settings: DraftInvoiceSettings): InvoiceSettingsSchemaType {
   return {
-    hourly_rate: parseFloat(comp.hourly_rate),
+    hourly_rate: parseFloat(settings.hourly_rate),
   }
 }
 
@@ -29,26 +29,26 @@ export const SettingsDrawer = ({
   readonly setOpen: (value: boolean) => void
 }) => {
   const toast = useContext(ToastCtx);
-  const [compensation, setCompensation] = useState<DraftCompensation | "loading" | "error">("loading");
-  const [updateCompensationLoading, setUpdateCompensationLoading] = useState(false);
+  const [invoiceSettings, setInvoiceSettings] = useState<DraftInvoiceSettings | "loading" | "error">("loading");
+  const [updateInvoiceSettingsLoading, setUpdateInvoiceSettingsLoading] = useState(false);
 
-  const fetchCompensation = useCallback(async () => {
-    const res = await api.compensation.get();
+  const fetchInvoiceSettings = useCallback(async () => {
+    const res = await api.invoiceSettings.get();
     if (isLeft(res)) {
-      console.error(`failed to get compensation: ${res.left}`);
-      setCompensation("error");
+      console.error(`failed to get invoice settings: ${res.left}`);
+      setInvoiceSettings("error");
       return;
     }
 
-    setCompensation(draftCompensationFromSchemaType(res.right));
-  }, [setCompensation])
+    setInvoiceSettings(draftInvoiceSettingsFromSchemaType(res.right));
+  }, [setInvoiceSettings])
 
   useEffect(() => {
-    fetchCompensation()
-  }, [fetchCompensation]);
+    fetchInvoiceSettings()
+  }, [fetchInvoiceSettings]);
 
-  const updateCompensation = useCallback(function<K extends keyof DraftCompensation, V extends DraftCompensation[K]>(key: K, value: V) {
-    setCompensation((comp) => {
+  const updateInvoiceSettings = useCallback(function<K extends keyof DraftInvoiceSettings, V extends DraftInvoiceSettings[K]>(key: K, value: V) {
+    setInvoiceSettings((comp) => {
       if (comp === "loading" || comp === "error") {
         return comp;
       }
@@ -60,36 +60,36 @@ export const SettingsDrawer = ({
     });
   }, [])
 
-  const sendCompensationUpdate = useCallback(async () => {
-    if (compensation === "loading" || compensation === "error") {
+  const sendInvoiceSettingsUpdate = useCallback(async () => {
+    if (invoiceSettings === "loading" || invoiceSettings === "error") {
       return;
     }
 
-    setUpdateCompensationLoading(true);
+    setUpdateInvoiceSettingsLoading(true);
 
-    const comp = schemaCompensationFromDraftType(compensation);
-    const res = await api.compensation.set({
+    const comp = schemaInvoiceSettingsFromDraftType(invoiceSettings);
+    const res = await api.invoiceSettings.set({
       hourlyRate: comp.hourly_rate,
     });
 
-    setUpdateCompensationLoading(false);
+    setUpdateInvoiceSettingsLoading(false);
 
     if (isLeft(res)) {
       toast({
         kind: "error",
-        message: "Failed to update compensation settings",
+        message: "Failed to update invoice settings",
       });
-      console.error(`Failed to update compensation settings: ${res.left}`);
+      console.error(`Failed to update invoice settings: ${res.left}`);
       return;
     }
 
-    setCompensation(draftCompensationFromSchemaType(res.right));
+    setInvoiceSettings(draftInvoiceSettingsFromSchemaType(res.right));
 
     toast({
       kind: "success",
-      message: "Updated compensation settings",
+      message: "Updated invoice settings",
     })
-  }, [compensation, setCompensation, setUpdateCompensationLoading]);
+  }, [invoiceSettings, setInvoiceSettings, setUpdateInvoiceSettingsLoading]);
 
   return (
     <Drawer
@@ -102,32 +102,32 @@ export const SettingsDrawer = ({
       </Typography>
 
       <Typography variant="h6">
-        Compensation
+        Invoice
       </Typography>
-      {compensation === "loading" ? (
+      {invoiceSettings === "loading" ? (
         <>
           <CircularProgress />
-          <Typography>Loading compensation settings</Typography>
+          <Typography>Loading invoice settings</Typography>
         </>
-      ) : compensation === "error" ? (
+      ) : invoiceSettings === "error" ? (
         <>
           <WarningIcon />
-          <Typography>Failed to load compensation settings</Typography>
+          <Typography>Failed to load invoice settings</Typography>
         </>
       ) : (
         <>
           <TextField
             label="Hourly Rate"
-            value={compensation.hourly_rate}
-            onChange={(e) => updateCompensation("hourly_rate", e.target.value)}
+            value={invoiceSettings.hourly_rate}
+            onChange={(e) => updateInvoiceSettings("hourly_rate", e.target.value)}
           />
 
           <Button
-            disabled={updateCompensationLoading}
+            disabled={updateInvoiceSettingsLoading}
             type="submit"
-            onClick={sendCompensationUpdate}
+            onClick={sendInvoiceSettingsUpdate}
           >
-            {updateCompensationLoading && (
+            {updateInvoiceSettingsLoading && (
               <CircularProgress />
             )}
             Save

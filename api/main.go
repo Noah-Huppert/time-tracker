@@ -48,8 +48,8 @@ func main() {
 			ColumnEndTime:   "time ended",
 			ColumnComment:   "comment",
 		}),
-		CompensationRepo: models.NewJSONCompensationRepo(models.NewJSONCompensationRepoOpts{
-			FilePath: "./data/compensation.json",
+		InvoiceSettingsRepo: models.NewJSONInvoiceSettingsRepo(models.NewJSONInvoiceSettingsRepoOpts{
+			FilePath: "./data/invoice-settings.json",
 		}),
 	})
 

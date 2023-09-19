@@ -9,10 +9,10 @@ const timeEntrySchema = z.object({
 });
 export type TimeEntrySchemaType = z.infer<typeof timeEntrySchema>;
 
-const compensationSchema = z.object({
+const invoiceSettingsSchema = z.object({
   hourly_rate: z.number(),
 });
-export type CompensationSchemaType = z.infer<typeof compensationSchema>;
+export type InvoiceSettingsSchemaType = z.infer<typeof invoiceSettingsSchema>;
 
 const BASE_URL = "http://localhost:4000/api/v0/";
 
@@ -94,11 +94,11 @@ export const api = {
       }),
   },
 
-  compensation: {
+  invoiceSettings: {
     get: () => makeReq({
-      path: "compensation",
+      path: "invoice-settings",
       method: "GET",
-      shape: compensationSchema,
+      shape: invoiceSettingsSchema,
     }),
 
     set: ({
@@ -106,9 +106,9 @@ export const api = {
     }: {
       readonly hourlyRate: number
     }) => makeReq({
-      path: "compensation",
+      path: "invoice-settings",
       method: "PUT",
-      shape: compensationSchema,
+      shape: invoiceSettingsSchema,
       body: {
         hourly_rate: hourlyRate,
       }

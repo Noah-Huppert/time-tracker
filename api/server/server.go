@@ -25,8 +25,8 @@ type Server struct {
 	// timeEntryRepo is the time entry repository
 	timeEntryRepo models.TimeEntryRepo
 
-	// compRepo is the compensation repository
-	compRepo models.CompensationRepo
+	// invoiceSettingsRepo is the invoice settings repository
+	invoiceSettingsRepo models.InvoiceSettingsRepo
 }
 
 // NewServerOpts are options to create a new server
@@ -37,17 +37,17 @@ type NewServerOpts struct {
 	// TimeEntryRepo is the time entry repository
 	TimeEntryRepo models.TimeEntryRepo
 
-	// CompensationRepo is the compensation model repository
-	CompensationRepo models.CompensationRepo
+	// InvoiceSettingsRepo is the invoice settings model repository
+	InvoiceSettingsRepo models.InvoiceSettingsRepo
 }
 
 // NewServer creates a new Server
 func NewServer(opts NewServerOpts) Server {
 	return Server{
-		logger:        opts.Logger,
-		validate:      validator.New(),
-		timeEntryRepo: opts.TimeEntryRepo,
-		compRepo:      opts.CompensationRepo,
+		logger:              opts.Logger,
+		validate:            validator.New(),
+		timeEntryRepo:       opts.TimeEntryRepo,
+		invoiceSettingsRepo: opts.InvoiceSettingsRepo,
 	}
 }
 
@@ -69,8 +69,8 @@ func (s Server) Listen(ctxPair gointerrupt.CtxPair, addr string) error {
 
 	app.Get("/api/v0/time-entries", s.EPTimeEntriesList)
 
-	app.Get("/api/v0/compensation", s.EPCompensationGet)
-	app.Put("/api/v0/compensation", s.EPCompensationSet)
+	app.Get("/api/v0/invoice-settings", s.EPInvoiceSettingsGet)
+	app.Put("/api/v0/invoice-settings", s.EPInvoiceSettingsSet)
 
 	// Setup server graceful shutdown
 	shutdownErr := make(chan error, 1)
@@ -212,37 +212,37 @@ type TimeEntryListItem struct {
 	Hash string `json:"hash"`
 }
 
-// EPCompensationGet gets compensation
-func (s Server) EPCompensationGet(c *fiber.Ctx) error {
-	comp, err := s.compRepo.Get()
+// EPInvoiceSettingsGet gets invoice settings
+func (s Server) EPInvoiceSettingsGet(c *fiber.Ctx) error {
+	settings, err := s.invoiceSettingsRepo.Get()
 	if err != nil {
-		return fmt.Errorf("failed to get compensation: %s", err)
+		return fmt.Errorf("failed to get invoice settings: %s", err)
 	}
 
-	return c.JSON(comp)
+	return c.JSON(settings)
 }
 
-// EPCompensationSet sets compensation
-func (s Server) EPCompensationSet(c *fiber.Ctx) error {
+// EPInvoiceSettingsSet sets invoice settings
+func (s Server) EPInvoiceSettingsSet(c *fiber.Ctx) error {
 	// Parse body
-	var body EPCompensationSetReq
+	var body EPInvoiceSettingsSetReq
 	if err := s.parseBody(c, &body); err != nil {
 		return err
 	}
 
 	// Set
-	newComp := models.Compensation{
+	newSettings := models.InvoiceSettings{
 		HourlyRate: body.HourlyRate,
 	}
-	if err := s.compRepo.Set(newComp); err != nil {
-		return fmt.Errorf("failed to set compensation: %s", err)
+	if err := s.invoiceSettingsRepo.Set(newSettings); err != nil {
+		return fmt.Errorf("failed to set invoice settings: %s", err)
 	}
 
-	return c.JSON(newComp)
+	return c.JSON(newSettings)
 }
 
-// EPCompensationSetReq is the set compensation request body
-type EPCompensationSetReq struct {
+// EPInvoiceSettingsSetReq is the set invoice settings request body
+type EPInvoiceSettingsSetReq struct {
 	// HourlyRate is the new hourly rate value
 	HourlyRate float32 `json:"hourly_rate" validate:"required"`
 }
