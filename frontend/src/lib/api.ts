@@ -11,6 +11,8 @@ export type TimeEntrySchemaType = z.infer<typeof timeEntrySchema>;
 
 const invoiceSettingsSchema = z.object({
   hourly_rate: z.number(),
+  recipient: z.string(),
+  sender: z.string(),
 });
 export type InvoiceSettingsSchemaType = z.infer<typeof invoiceSettingsSchema>;
 
@@ -102,15 +104,21 @@ export const api = {
     }),
 
     set: ({
-      hourlyRate
+      hourlyRate,
+      recipient,
+      sender,
     }: {
       readonly hourlyRate: number
+      readonly recipient: string
+      readonly sender: string
     }) => makeReq({
       path: "invoice-settings",
       method: "PUT",
       shape: invoiceSettingsSchema,
       body: {
         hourly_rate: hourlyRate,
+        recipient,
+        sender,
       }
     })
   }

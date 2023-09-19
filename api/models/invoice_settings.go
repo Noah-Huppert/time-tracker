@@ -10,6 +10,12 @@ import (
 type InvoiceSettings struct {
 	// HourlyRate is the number of currency the user makes per hour of work
 	HourlyRate float32 `json:"hourly_rate"`
+
+	// Recipient is information about the person who is receiving the invoice
+	Recipient string `json:"recipient"`
+
+	// Sender is information about the person who is sending the invoice
+	Sender string `json:"sender"`
 }
 
 // InvoiceSettingsRepo are methods to query and modify compensation information

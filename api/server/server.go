@@ -233,6 +233,8 @@ func (s Server) EPInvoiceSettingsSet(c *fiber.Ctx) error {
 	// Set
 	newSettings := models.InvoiceSettings{
 		HourlyRate: body.HourlyRate,
+		Recipient:  body.Recipient,
+		Sender:     body.Sender,
 	}
 	if err := s.invoiceSettingsRepo.Set(newSettings); err != nil {
 		return fmt.Errorf("failed to set invoice settings: %s", err)
@@ -245,4 +247,10 @@ func (s Server) EPInvoiceSettingsSet(c *fiber.Ctx) error {
 type EPInvoiceSettingsSetReq struct {
 	// HourlyRate is the new hourly rate value
 	HourlyRate float32 `json:"hourly_rate" validate:"required"`
+
+	// Recipient is the new recipient value
+	Recipient string `json:"recipient" validate:"required"`
+
+	// Sender is the new sender value
+	Sender string `json:"sender" validate:"required"`
 }

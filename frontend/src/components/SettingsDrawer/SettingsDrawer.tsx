@@ -1,23 +1,31 @@
-import { Button, CircularProgress, Drawer, TextField, Typography } from "@mui/material"
+import { Box, Button, CircularProgress, Drawer, TextField, Typography } from "@mui/material"
 import { useCallback, useContext, useEffect, useState } from "react"
 import { InvoiceSettingsSchemaType, api } from "../../lib/api"
 import { isLeft } from "fp-ts/lib/Either"
 import WarningIcon from "@mui/icons-material/Warning";
 import { ToastCtx } from "../Toast/Toast";
 
+import "./SettingsDrawer.css";
+
 type DraftInvoiceSettings = {
   hourly_rate: string
+  recipient: string,
+  sender: string,
 }
 
 function draftInvoiceSettingsFromSchemaType(settings: InvoiceSettingsSchemaType): DraftInvoiceSettings {
   return {
     hourly_rate: settings.hourly_rate.toString(),
+    recipient: settings.recipient,
+    sender: settings.sender,
   }
 }
 
 function schemaInvoiceSettingsFromDraftType(settings: DraftInvoiceSettings): InvoiceSettingsSchemaType {
   return {
     hourly_rate: parseFloat(settings.hourly_rate),
+    recipient: settings.recipient,
+    sender: settings.sender,
   }
 }
 
@@ -67,9 +75,11 @@ export const SettingsDrawer = ({
 
     setUpdateInvoiceSettingsLoading(true);
 
-    const comp = schemaInvoiceSettingsFromDraftType(invoiceSettings);
+    const settings = schemaInvoiceSettingsFromDraftType(invoiceSettings);
     const res = await api.invoiceSettings.set({
-      hourlyRate: comp.hourly_rate,
+      hourlyRate: settings.hourly_rate,
+      recipient: settings.recipient,
+      sender: settings.sender,
     });
 
     setUpdateInvoiceSettingsLoading(false);
@@ -97,44 +107,98 @@ export const SettingsDrawer = ({
       onClose={() => setOpen(false)}
       anchor="right"
     >
-      <Typography variant="h5">
-        Settings
-      </Typography>
+      <Box
+        sx={{
+          padding: "1rem",
+          display: "flex",
+          flexDirection: "column",
+          minWidth: "30rem",
+        }}
+      >
+        <Typography variant="h5">
+          Settings
+        </Typography>
 
-      <Typography variant="h6">
-        Invoice
-      </Typography>
-      {invoiceSettings === "loading" ? (
-        <>
-          <CircularProgress />
-          <Typography>Loading invoice settings</Typography>
-        </>
-      ) : invoiceSettings === "error" ? (
-        <>
-          <WarningIcon />
-          <Typography>Failed to load invoice settings</Typography>
-        </>
-      ) : (
-        <>
-          <TextField
-            label="Hourly Rate"
-            value={invoiceSettings.hourly_rate}
-            onChange={(e) => updateInvoiceSettings("hourly_rate", e.target.value)}
-          />
+        <Typography
+          variant="h6"
+          sx={{
+            marginBottom: "1rem",
+          }}
+        >
+          Invoice
+        </Typography>
 
-          <Button
-            disabled={updateInvoiceSettingsLoading}
-            type="submit"
-            onClick={sendInvoiceSettingsUpdate}
-          >
-            {updateInvoiceSettingsLoading && (
+        <Box
+          sx={{
+            paddingLeft: "2rem",
+            paddingRight: "2rem",
+            paddingBottom: "2rem",
+          }}
+        >
+          {invoiceSettings === "loading" ? (
+            <>
               <CircularProgress />
-            )}
-            Save
-          </Button>
-        </>
-      )}
-      
+              <Typography>Loading invoice settings</Typography>
+            </>
+          ) : invoiceSettings === "error" ? (
+            <>
+              <WarningIcon />
+              <Typography>Failed to load invoice settings</Typography>
+            </>
+          ) : (
+            <>
+              <Box className="setting-input">
+                <TextField
+                  label="Hourly Rate"
+                  value={invoiceSettings.hourly_rate}
+                  onChange={(e) => updateInvoiceSettings("hourly_rate", e.target.value)}
+                  sx={{
+                    width: "100%"
+                  }}
+                />
+              </Box>
+
+              <Box className="setting-input">
+                <TextField
+                  multiline
+                  rows={3}
+                  label="Recipient"
+                  value={invoiceSettings.recipient}
+                  onChange={(e) => updateInvoiceSettings("recipient", e.target.value)}
+                  sx={{
+                    width: "100%"
+                  }}
+                />
+              </Box>
+
+              <Box className="setting-input">
+                <TextField
+                  multiline
+                  rows={3}
+                  label="Sender"
+                  value={invoiceSettings.sender}
+                  onChange={(e) => updateInvoiceSettings("sender", e.target.value)}
+                  sx={{
+                    width: "100%"
+                  }}
+                />
+              </Box>
+
+              <Button
+                disabled={updateInvoiceSettingsLoading}
+                type="submit"
+                onClick={sendInvoiceSettingsUpdate}
+                variant="outlined"
+              >
+                {updateInvoiceSettingsLoading && (
+                  <CircularProgress />
+                )}
+                Save
+              </Button>
+            </>
+          )}
+        </Box>
+      </Box>
     </Drawer>
   ) 
 }
