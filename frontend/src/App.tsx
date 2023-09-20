@@ -10,6 +10,8 @@ import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 import { createTheme, CssBaseline, ThemeProvider } from "@mui/material";
 import { ToastProvider } from "./components/Toast/Toast";
+import { ROUTES } from "./lib/routes";
+import { PageCreateInvoice } from "./pages/CreateInvoice/CreateInvoice";
 
 const theme = createTheme({      
   typography: {
@@ -19,11 +21,14 @@ const theme = createTheme({
   }
 });
 
-
 const router = createBrowserRouter([
   {
-    path: "/",
+    path: ROUTES.time_entries.pattern,
     element: <PageTimeEntries />,
+  },
+  {
+    path: ROUTES.createInvoice.pattern,
+    element: <PageCreateInvoice />
   },
 ]);
 
@@ -34,7 +39,6 @@ function App() {
         <ThemeProvider theme={theme}>
           <ToastProvider>
             <CssBaseline />
-            <Header />
             <RouterProvider router={router} />
           </ToastProvider>
         </ThemeProvider>

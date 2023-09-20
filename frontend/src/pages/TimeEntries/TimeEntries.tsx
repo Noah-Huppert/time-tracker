@@ -3,9 +3,7 @@ import { api, InvoiceSettingsSchemaType, ListTimeEntriesSchemaType, TimeEntrySch
 import {
   Box,
   Button,
-  Chip,
   CircularProgress,
-  IconButton,
   Paper,
   Table,
   TableBody,
@@ -17,13 +15,12 @@ import {
 } from "@mui/material";
 import WarningIcon from "@mui/icons-material/Warning";
 import { isLeft } from "fp-ts/lib/Either";
-import { DateTimePicker } from "@mui/x-date-pickers";
-import HighlightOffIcon from '@mui/icons-material/HighlightOff';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import FilterAltIcon from '@mui/icons-material/FilterAlt';
-import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import dayjsDuration, { Duration } from "dayjs/plugin/duration";
 import dayjs from "dayjs";
+import { DateFilter } from "../../components/DateFilter/DateFilter";
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "../../lib/routes";
+import { Header } from "../../components/Header/Header";
 
 dayjs.extend(dayjsDuration);
 
@@ -36,6 +33,8 @@ function nanosecondsToDuration(nanoseconds: number): Duration {
 type WebDataTimeEntriesList = ListTimeEntriesSchemaType | "loading" | "error"
 
 export const PageTimeEntries = () => {
+  const navigate = useNavigate();
+
   const [filterStartTime, setFilterStartTime] = useState<Date | null>(null);
   const [filterEndTime, setFilterEndTime] = useState<Date | null>(null);
   const [timeEntries, setTimeEntries] = useState<WebDataTimeEntriesList>("loading");
@@ -55,39 +54,51 @@ export const PageTimeEntries = () => {
     setTimeEntries(res.right);
   }, [filterStartTime, filterEndTime]);
 
+  const onCreateInvoice = useCallback(() => {
+    navigate(ROUTES.createInvoice.make({
+      startDate: filterStartTime,
+      endDate: filterEndTime,
+    }));
+  }, [filterStartTime, filterEndTime]);
+
   useEffect(() => {
     fetchTimeEntries();
   }, [fetchTimeEntries]);
 
   return (
-    <Box
-      sx={{
-        padding: "1rem",
-      }}
-    >
+    <>
+      <Header />
       <Box
         sx={{
-          display: "flex",
-          flexDirection: "row",
-          justifyContent: "space-between",
-          marginBottom: "1rem",
+          padding: "1rem",
         }}
       >
-        <PageTimeFilters
-          filterStartTime={filterStartTime}
-          setFilterStartTime={setFilterStartTime}
-          filterEndTime={filterEndTime}
-          setFilterEndTime={setFilterEndTime}
-        />
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            marginBottom: "1rem",
+          }}
+        >
+          <PageTimeFilters
+            filterStartTime={filterStartTime}
+            setFilterStartTime={setFilterStartTime}
+            filterEndTime={filterEndTime}
+            setFilterEndTime={setFilterEndTime}
+          />
 
-        <PageTimeInformation timeEntries={timeEntries} />
+          <PageTimeInformation timeEntries={timeEntries} />
 
-        <PageTimeActions />
+          <PageTimeActions
+            onCreateInvoice={onCreateInvoice}
+          />
+        </Box>
+
+        <TimeEntriesTable timeEntries={timeEntries} />
       </Box>
-
-      <TimeEntriesTable timeEntries={timeEntries} />
-    </Box>
-  )
+    </>
+  );
 };
 
 const PageTimeFilters = ({
@@ -235,7 +246,11 @@ const PageTimeInformationContent = ({
   );
 };
 
-const PageTimeActions = () => {
+const PageTimeActions = ({
+  onCreateInvoice,
+}: {
+  readonly onCreateInvoice: () => void
+}) => {
   return (
     <Box
       sx={{
@@ -256,6 +271,7 @@ const PageTimeActions = () => {
       >
         <Button
           variant="contained"
+          onClick={onCreateInvoice}
         >
           Create Invoice
         </Button>
@@ -263,90 +279,6 @@ const PageTimeActions = () => {
     </Box>
   );
 };
-
-const DateFilter = ({
-  label,
-  value,
-  onChange,
-}: {
-  readonly label: string
-  readonly value: Date | null
-  readonly onChange: (date: Date | null) => void
-}) => {
-  const [showingSelector, setShowingSelector] = useState(false);
-
-  if (value === null && showingSelector === false) {
-    return (
-      <>
-        <Button
-          startIcon={<AddCircleOutlineIcon />}
-          variant="outlined"
-          onClick={() => setShowingSelector(true)}
-        >
-          {label}
-        </Button>
-      </>
-    );
-  }
-
-  if (showingSelector === true) {
-    return (
-      <>
-        <DateTimePicker
-          label={label}
-          value={value}
-          onChange={onChange}
-          open={true}
-          onClose={() => setShowingSelector(false)}
-        />
-      </>
-    );
-  }
-
-  return (
-    <>
-      <Chip
-        label={`${label}: ${dayjs(value).format("YYYY-MM-DD HH:mm:ss")}`}
-        onDelete={() => onChange(null)}
-        variant="filled"
-        color="primary"
-      />
-    </>
-  );
-
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "row",
-        marginTop: "1rem",
-        alignItems: "center",
-      }}
-    >
-      <DateTimePicker
-        label={label}
-        value={value}
-        onChange={onChange}
-      />
-
-      {value !== null && (
-        <Box>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => onChange(null)}
-            startIcon={<HighlightOffIcon />}
-            sx={{
-              marginLeft: "1rem",
-            }}
-          >
-            Clear
-          </Button>
-        </Box>
-      )}
-    </Box>
-  )
-}
 
 const TimeEntriesTable = ({
   timeEntries,
