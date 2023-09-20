@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, ListTimeEntriesSchemaType, TimeEntrySchemaType } from "../../lib/api";
+import { api, InvoiceSettingsSchemaType, ListTimeEntriesSchemaType, TimeEntrySchemaType } from "../../lib/api";
 import {
   Box,
   Button,
@@ -82,30 +82,7 @@ export const PageTimeEntries = () => {
 
         <PageTimeInformation timeEntries={timeEntries} />
 
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <Typography variant="h5">
-            Actions
-          </Typography>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              marginTop: "1rem",
-            }}
-          >
-            <Button
-              variant="contained"
-            >
-              Create Invoice
-            </Button>
-          </Box>
-        </Box>
+        <PageTimeActions />
       </Box>
 
       <TimeEntriesTable timeEntries={timeEntries} />
@@ -190,7 +167,23 @@ const PageTimeInformationContent = ({
 }: {
   readonly timeEntries: WebDataTimeEntriesList
 }) => {
-  if (timeEntries === "loading") {
+  const [invoiceSettings, setInvoiceSettings] = useState<InvoiceSettingsSchemaType | "loading" | "error">("loading");
+
+  const fetchInvoiceSettings = useCallback(async () => {
+    const res = await api.invoiceSettings.get();
+    if (isLeft(res)) {
+      setInvoiceSettings("error");
+      return;
+    }
+
+    setInvoiceSettings(res.right);
+  }, []);
+
+  useEffect(() => {
+    fetchInvoiceSettings();
+  }, [])
+
+  if (timeEntries === "loading"  || invoiceSettings === "loading") {
     return (
       <>
         <CircularProgress size="small" />
@@ -201,7 +194,7 @@ const PageTimeInformationContent = ({
     );
   }
 
-  if (timeEntries === "error") {
+  if (timeEntries === "error" || invoiceSettings === "error") {
     return (
       <>
         <Typography>
@@ -226,15 +219,50 @@ const PageTimeInformationContent = ({
             <TableCell variant="head">Total Duration</TableCell>
             <TableCell>{totalDuration.format("YY-MM-DD HH:mm:ss")}</TableCell>
           </TableRow>
+
           <TableRow>
             <TableCell></TableCell>
             <TableCell>{totalDuration.asHours().toFixed(2)} Hour(s)</TableCell>
+          </TableRow>
+
+          <TableRow>
+            <TableCell variant="head">Value</TableCell>
+            <TableCell>${(invoiceSettings.hourly_rate * totalDuration.asHours()).toFixed(2)}</TableCell>
           </TableRow>
         </TableBody>
       </Table>
     </TableContainer>
   );
-}
+};
+
+const PageTimeActions = () => {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <Typography variant="h5">
+        Actions
+      </Typography>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          marginTop: "1rem",
+        }}
+      >
+        <Button
+          variant="contained"
+        >
+          Create Invoice
+        </Button>
+      </Box>
+    </Box>
+  );
+};
 
 const DateFilter = ({
   label,
