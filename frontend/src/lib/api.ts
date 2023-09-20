@@ -6,8 +6,15 @@ const timeEntrySchema = z.object({
   end_time: z.string(),
   comment: z.string(),
   hash: z.string(),
+  duration: z.number(),
 });
 export type TimeEntrySchemaType = z.infer<typeof timeEntrySchema>;
+
+const listTimeEntriesSchema = z.object({
+  time_entries: z.array(timeEntrySchema),
+  total_duration: z.number(),
+});
+export type ListTimeEntriesSchemaType = z.infer<typeof listTimeEntriesSchema>;
 
 const invoiceSettingsSchema = z.object({
   hourly_rate: z.number(),
@@ -86,9 +93,7 @@ export const api = {
       makeReq({
         path: "time-entries",
         method: "GET",
-        shape: z.object({
-          time_entries: z.array(timeEntrySchema),
-        }),
+        shape: listTimeEntriesSchema,
         queryParams: {
           "start_time": startTime?.toISOString(),
           "end_time": endTime?.toISOString(),

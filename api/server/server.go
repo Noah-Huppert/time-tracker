@@ -179,22 +179,29 @@ func (s Server) EPTimeEntriesList(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to list time entries: %s", err)
 	}
 
-	// Get all their hashes
+	// Add additional fields onto time entries
 	listItems := []TimeEntryListItem{}
+	var totalDuration time.Duration
+
 	for timeEntryI, timeEntry := range timeEntries {
 		hash, err := timeEntry.Hash()
 		if err != nil {
 			return fmt.Errorf("failed to hash time entry %d: %s", timeEntryI, err)
 		}
 
+		duration := timeEntry.Duration()
+		totalDuration += duration
+
 		listItems = append(listItems, TimeEntryListItem{
 			TimeEntry: timeEntry,
 			Hash:      hash,
+			Duration:  duration,
 		})
 	}
 
 	return c.JSON(EPTimeEntriesListResp{
-		TimeEntries: listItems,
+		TimeEntries:   listItems,
+		TotalDuration: totalDuration,
 	})
 }
 
@@ -202,6 +209,9 @@ func (s Server) EPTimeEntriesList(c *fiber.Ctx) error {
 type EPTimeEntriesListResp struct {
 	// TimeEntries is the list of time entries
 	TimeEntries []TimeEntryListItem `json:"time_entries"`
+
+	// TotalDuration is the duration of each time entry added up
+	TotalDuration time.Duration `json:"total_duration"`
 }
 
 // TimeEntryListItem is a time entry item in a list endpoint response
@@ -210,6 +220,9 @@ type TimeEntryListItem struct {
 
 	// Hash of the time entry, based on its content
 	Hash string `json:"hash"`
+
+	// Duration of the time entry
+	Duration time.Duration `json:"duration"`
 }
 
 // EPInvoiceSettingsGet gets invoice settings
