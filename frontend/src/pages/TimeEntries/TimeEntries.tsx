@@ -21,14 +21,9 @@ import { DateFilter } from "../../components/DateFilter/DateFilter";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "../../lib/routes";
 import { Header } from "../../components/Header/Header";
+import { nanosecondsToDuration } from "../../lib/time";
 
 dayjs.extend(dayjsDuration);
-
-const MILLISECONDS_PER_NANOSECOND = 1e6;
-
-function nanosecondsToDuration(nanoseconds: number): Duration {
-  return dayjs.duration(nanoseconds / MILLISECONDS_PER_NANOSECOND, "milliseconds");
-}
 
 type WebDataTimeEntriesList = ListTimeEntriesSchemaType | "loading" | "error"
 

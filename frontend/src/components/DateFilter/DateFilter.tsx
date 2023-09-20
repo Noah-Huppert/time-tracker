@@ -48,6 +48,7 @@ export const DateFilter = ({
       <Chip
         label={`${label}: ${dayjs(value).format("YYYY-MM-DD HH:mm:ss")}`}
         onDelete={() => onChange(null)}
+        onClick={() => setShowingSelector(true)}
         variant="filled"
         color="primary"
       />
