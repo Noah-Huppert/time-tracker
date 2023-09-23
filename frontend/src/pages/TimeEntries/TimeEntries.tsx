@@ -30,14 +30,14 @@ type WebDataTimeEntriesList = ListTimeEntriesSchemaType | "loading" | "error"
 export const PageTimeEntries = () => {
   const navigate = useNavigate();
 
-  const [filterStartTime, setFilterStartTime] = useState<Date | null>(null);
-  const [filterEndTime, setFilterEndTime] = useState<Date | null>(null);
+  const [filterStartDate, setFilterStartDate] = useState<Date | null>(null);
+  const [filterEndDate, setFilterEndDate] = useState<Date | null>(null);
   const [timeEntries, setTimeEntries] = useState<WebDataTimeEntriesList>("loading");
 
   const fetchTimeEntries = useCallback(async () => {
     const res = await api.timeEntries.list({
-      startTime: filterStartTime,
-      endTime: filterEndTime,
+      startDate: filterStartDate,
+      endDate: filterEndDate,
     });
 
     if (isLeft(res)) {
@@ -47,14 +47,14 @@ export const PageTimeEntries = () => {
     }
 
     setTimeEntries(res.right);
-  }, [filterStartTime, filterEndTime]);
+  }, [filterStartDate, filterEndDate]);
 
   const onCreateInvoice = useCallback(() => {
     navigate(ROUTES.createInvoice.make({
-      startDate: filterStartTime,
-      endDate: filterEndTime,
+      startDate: filterStartDate,
+      endDate: filterEndDate,
     }));
-  }, [filterStartTime, filterEndTime]);
+  }, [filterStartDate, filterEndDate]);
 
   useEffect(() => {
     fetchTimeEntries();
@@ -77,10 +77,10 @@ export const PageTimeEntries = () => {
           }}
         >
           <PageTimeFilters
-            filterStartTime={filterStartTime}
-            setFilterStartTime={setFilterStartTime}
-            filterEndTime={filterEndTime}
-            setFilterEndTime={setFilterEndTime}
+            filterStartDate={filterStartDate}
+            setFilterStartDate={setFilterStartDate}
+            filterEndDate={filterEndDate}
+            setFilterEndDate={setFilterEndDate}
           />
 
           <PageTimeInformation timeEntries={timeEntries} />
@@ -97,15 +97,15 @@ export const PageTimeEntries = () => {
 };
 
 const PageTimeFilters = ({
-  filterStartTime,
-  setFilterStartTime,
-  filterEndTime,
-  setFilterEndTime,
+  filterStartDate,
+  setFilterStartDate,
+  filterEndDate,
+  setFilterEndDate,
 }: {
-  readonly filterStartTime: Date | null
-  readonly setFilterStartTime: (value: Date | null) => void
-  readonly filterEndTime: Date | null
-  readonly setFilterEndTime: (value: Date | null) => void
+  readonly filterStartDate: Date | null
+  readonly setFilterStartDate: (value: Date | null) => void
+  readonly filterEndDate: Date | null
+  readonly setFilterEndDate: (value: Date | null) => void
 }) => {
   return (
     <Box>
@@ -125,9 +125,9 @@ const PageTimeFilters = ({
           }}
         >
           <DateFilter
-            label="Start Time"
-            value={filterStartTime}
-            onChange={setFilterStartTime}
+            label="Start Date"
+            value={filterStartDate}
+            onChange={setFilterStartDate}
           />
         </Box>
 
@@ -137,9 +137,9 @@ const PageTimeFilters = ({
           }}
         >
           <DateFilter
-            label="End Time"
-            value={filterEndTime}
-            onChange={setFilterEndTime}
+            label="End Date"
+            value={filterEndDate}
+            onChange={setFilterEndDate}
           />
         </Box>
       </Box>

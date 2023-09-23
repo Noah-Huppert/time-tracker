@@ -45,11 +45,11 @@ type TimeEntryRepo interface {
 }
 
 type ListTimeEntriesOpts struct {
-	// StartTime indicates only time entries which started after (inclusive) this date should be returned
-	StartTime *time.Time
+	// StartDate indicates only time entries which started after (inclusive) this date should be returned
+	StartDate *time.Time
 
-	// EndTime indicates only time entries which started before (inclusive) this date should be returned
-	EndTime *time.Time
+	// EndDate indicates only time entries which started before (inclusive) this date should be returned
+	EndDate *time.Time
 }
 
 // CSVTimeEntryRepo implements TimeEntryRepo by loading CSV files from a directory
@@ -100,6 +100,32 @@ func NewCSVTimeEntryRepo(opts NewCSVTimeEntryRepoOpts) CSVTimeEntryRepo {
 		columnEndTime:   opts.ColumnEndTime,
 		columnComment:   opts.ColumnComment,
 	}
+}
+
+// dateCompare only compares the date (year, month, day) component of a time. Returns less than 0 if compare is before base, greater than 0 if compare is after base, 0 if the same.
+func dateCompare(base time.Time, compare time.Time) int32 {
+	// Year
+	if compare.Year() > base.Year() {
+		return 1
+	} else if compare.Year() < base.Year() {
+		return -1
+	}
+
+	// Month
+	if compare.Month() > base.Month() {
+		return 1
+	} else if compare.Month() < base.Month() {
+		return -1
+	}
+
+	// Day
+	if compare.Day() > base.Day() {
+		return 1
+	} else if compare.Day() < base.Day() {
+		return -1
+	}
+
+	return 0
 }
 
 func (r CSVTimeEntryRepo) List(opts ListTimeEntriesOpts) ([]TimeEntry, error) {
@@ -188,11 +214,14 @@ func (r CSVTimeEntryRepo) List(opts ListTimeEntriesOpts) ([]TimeEntry, error) {
 	// Filter
 	filteredTimeEntries := []TimeEntry{}
 	for _, entry := range timeEntriesList {
-		if opts.StartTime != nil && entry.StartTime.Before(*opts.StartTime) {
+		if opts.StartDate != nil && dateCompare(*opts.StartDate, entry.StartTime) < 0 {
 			continue
 		}
 
-		if opts.EndTime != nil && entry.StartTime.After(*opts.EndTime) {
+		if opts.EndDate != nil {
+			fmt.Printf("opts.EndDate=%s, entry.StartTime=%s, compare=%d\n", *opts.EndDate, entry.StartTime, dateCompare(*opts.EndDate, entry.StartTime))
+		}
+		if opts.EndDate != nil && dateCompare(*opts.EndDate, entry.StartTime) > 0 {
 			continue
 		}
 

@@ -1,5 +1,5 @@
 import { Button, Chip } from "@mui/material";
-import { DateTimePicker } from "@mui/x-date-pickers";
+import { DatePicker, DateTimePicker } from "@mui/x-date-pickers";
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import { useState } from "react";
 import dayjs from "dayjs";
@@ -15,13 +15,17 @@ export const DateFilter = ({
 }) => {
   const [showingSelector, setShowingSelector] = useState(false);
 
+  const onSetButtonClick = () => {
+    setShowingSelector(true)
+  }
+
   if (value === null && showingSelector === false) {
     return (
       <>
         <Button
           startIcon={<AddCircleOutlineIcon />}
           variant="outlined"
-          onClick={() => setShowingSelector(true)}
+          onClick={onSetButtonClick}
         >
           {label}
         </Button>
@@ -32,7 +36,7 @@ export const DateFilter = ({
   if (showingSelector === true) {
     return (
       <>
-        <DateTimePicker
+        <DatePicker
           label={label}
           value={value}
           onChange={onChange}
@@ -46,7 +50,7 @@ export const DateFilter = ({
   return (
     <>
       <Chip
-        label={`${label}: ${dayjs(value).format("YYYY-MM-DD HH:mm:ss")}`}
+        label={`${label}: ${dayjs(value).format("YYYY-MM-DD")}`}
         onDelete={() => onChange(null)}
         onClick={() => setShowingSelector(true)}
         variant="filled"

@@ -84,19 +84,19 @@ async function makeReq<T>({
 export const api = {
   timeEntries: {
     list: ({
-      startTime,
-      endTime,
+      startDate,
+      endDate,
     }: {
-      readonly startTime: Date | null
-      readonly endTime: Date | null
+      readonly startDate: Date | null
+      readonly endDate: Date | null
     }) =>
       makeReq({
         path: "time-entries",
         method: "GET",
         shape: listTimeEntriesSchema,
         queryParams: {
-          "start_time": startTime?.toISOString(),
-          "end_time": endTime?.toISOString(),
+          "start_date": startDate?.toISOString(),
+          "end_date": endDate?.toISOString(),
         }
       }),
   },

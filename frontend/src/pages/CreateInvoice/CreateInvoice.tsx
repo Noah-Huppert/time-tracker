@@ -1,5 +1,5 @@
 import { Box, CircularProgress, TableContainer, Typography, TableHead, Table, TableCell, TableBody, TableRow, styled, tableCellClasses, Button, Link, AppBar, Container, Toolbar } from "@mui/material";
-import { MutableRefObject, forwardRef, useCallback, useEffect, useRef, useState } from "react";
+import { MutableRefObject, ReactInstance, forwardRef, useCallback, useEffect, useRef, useState } from "react";
 import { InvoiceSettingsSchemaType, ListTimeEntriesSchemaType, TimeEntrySchemaType, api } from "../../lib/api";
 import { isLeft } from "fp-ts/lib/Either";
 import WarningIcon from "@mui/icons-material/Warning";
@@ -38,7 +38,7 @@ const TABLE_COL_WIDTHS = [
 ]
 
 export const PageCreateInvoice = () => {
-  const ref = useRef();
+  const ref = useRef(null);
   const onPrint = useReactToPrint({
     content: () => ref.current,
   })
@@ -111,8 +111,8 @@ export const Invoice = forwardRef((props, ref) => {
     readonly endDate: Date | null
   }) => {
     const res = await api.timeEntries.list({
-      startTime: startDate,
-      endTime: endDate,
+      startDate: startDate,
+      endDate: endDate,
     });
     if (isLeft(res)) {
       setTimeEntries("error");

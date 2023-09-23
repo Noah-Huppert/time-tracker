@@ -153,24 +153,24 @@ type EPHealthResp struct {
 func (s Server) EPTimeEntriesList(c *fiber.Ctx) error {
 	// Query params
 	listOpts := models.ListTimeEntriesOpts{
-		StartTime: nil,
-		EndTime:   nil,
+		StartDate: nil,
+		EndDate:   nil,
 	}
 
-	if startTimeQuery, ok := c.Queries()["start_time"]; ok {
+	if startTimeQuery, ok := c.Queries()["start_date"]; ok {
 		startTime, err := time.Parse(time.RFC3339, startTimeQuery)
 		if err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("failed to parse start_time '%s' as ISO-8601 date: %s", startTimeQuery, err))
 		}
-		listOpts.StartTime = &startTime
+		listOpts.StartDate = &startTime
 	}
 
-	if endTimeQuery, ok := c.Queries()["end_time"]; ok {
+	if endTimeQuery, ok := c.Queries()["end_date"]; ok {
 		endTime, err := time.Parse(time.RFC3339, endTimeQuery)
 		if err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("failed to parse end_time '%s' as ISO-8601 date: %s", endTimeQuery, err))
 		}
-		listOpts.EndTime = &endTime
+		listOpts.EndDate = &endTime
 	}
 
 	// Get time entries
