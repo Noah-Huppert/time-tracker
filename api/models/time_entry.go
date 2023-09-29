@@ -187,17 +187,50 @@ func (r CSVTimeEntryRepo) List(opts ListTimeEntriesOpts) ([]TimeEntry, error) {
 				return nil, fmt.Errorf("failed to parse end time '%s' in row %d: %s", endTimeStr, rowI, err)
 			}
 
-			// Create entry
-			entry := TimeEntry{
-				StartTime: startTime,
-				EndTime:   endTime,
-				Comment:   row[headerMap[r.columnComment]],
+			entries := []TimeEntry{
+				{
+					StartTime: startTime,
+					EndTime:   endTime,
+					Comment:   row[headerMap[r.columnComment]],
+				},
 			}
-			entryHash, err := entry.Hash()
-			if err != nil {
-				return nil, fmt.Errorf("failed to hash time entry: %s", err)
+
+			// Check if time passes over day boundary
+			if startTime.Day() != endTime.Day() || startTime.Month() != endTime.Month() || startTime.Year() != endTime.Year() {
+				// Make two entries, one that goes from the start time to the end of the day, and another which goes from midnight the following day to the following end time
+				totalDuration := endTime.Sub(startTime)
+
+				// Start day entry goes from original start time to end of the day
+				endOfStartDay := time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 23, 59, 59, 999999999, startTime.Location())
+				startDayDuration := endOfStartDay.Sub(endOfStartDay)
+
+				// End day entry goes from midnight of the following day to whatever duration is needed to reach the original duration
+				startOfEndDay := time.Date(endTime.Year(), endTime.Month(), endTime.Day(), 0, 0, 0, 0, endTime.Location())
+				endDayDuration := totalDuration - startDayDuration
+				endOfEndDay := startOfEndDay.Add(endDayDuration)
+
+				entries = []TimeEntry{
+					{
+						StartTime: startTime,
+						EndTime:   endOfStartDay,
+						Comment:   row[headerMap[r.columnComment]],
+					},
+					{
+						StartTime: startOfEndDay,
+						EndTime:   endOfEndDay,
+						Comment:   row[headerMap[r.columnComment]],
+					},
+				}
 			}
-			timeEntries[entryHash] = entry
+
+			// Save entry(s)
+			for _, entry := range entries {
+				entryHash, err := entry.Hash()
+				if err != nil {
+					return nil, fmt.Errorf("failed to hash time entry: %s", err)
+				}
+				timeEntries[entryHash] = entry
+			}
 		}
 	}
 
