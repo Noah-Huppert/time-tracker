@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import WarningIcon from "@mui/icons-material/Warning";
 import { isLeft } from "fp-ts/lib/Either";
-import dayjsDuration, { Duration } from "dayjs/plugin/duration";
+import dayjsDuration from "dayjs/plugin/duration";
 import dayjs from "dayjs";
 import { DateFilter } from "../../components/DateFilter/DateFilter";
 import { useNavigate } from "react-router-dom";
@@ -50,9 +50,16 @@ export const PageTimeEntries = () => {
   }, [filterStartDate, filterEndDate]);
 
   const onCreateInvoice = useCallback(() => {
+    const qpEndDate = filterEndDate;
+    if (qpEndDate !== null) {
+      qpEndDate.setHours(23);
+      qpEndDate.setMinutes(59);
+      qpEndDate.setSeconds(59);
+    }
+
     navigate(ROUTES.createInvoice.make({
       startDate: filterStartDate,
-      endDate: filterEndDate,
+      endDate: qpEndDate,
     }));
   }, [filterStartDate, filterEndDate]);
 

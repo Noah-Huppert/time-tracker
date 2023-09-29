@@ -170,8 +170,8 @@ export const Invoice = forwardRef((props, ref) => {
   }
   
   // Calculate details about invoice
-  let popStart = startDateStr !== null ? new Date(startDateStr) : null;;
-  let popEnd = endDateStr !== null ? new Date(endDateStr) : null;;
+  let popStart = startDateStr !== null ? new Date(startDateStr) : null;
+  let popEnd = endDateStr !== null ? new Date(endDateStr) : null;
 
   if (popStart === null) {
     popStart = new Date(timeEntries.time_entries[0].start_time)

@@ -36,10 +36,10 @@ export const DateFilter = ({
   if (showingSelector === true) {
     return (
       <>
-        <DatePicker
+        <DatePicker<dayjs.Dayjs>
           label={label}
-          value={value}
-          onChange={onChange}
+          value={dayjs(value)}
+          onChange={(d) => onChange(d?.toDate() || null)}
           open={true}
           onClose={() => setShowingSelector(false)}
         />
