@@ -251,9 +251,6 @@ func (r CSVTimeEntryRepo) List(opts ListTimeEntriesOpts) ([]TimeEntry, error) {
 			continue
 		}
 
-		if opts.EndDate != nil {
-			fmt.Printf("opts.EndDate=%s, entry.StartTime=%s, compare=%d\n", *opts.EndDate, entry.StartTime, dateCompare(*opts.EndDate, entry.StartTime))
-		}
 		if opts.EndDate != nil && dateCompare(*opts.EndDate, entry.StartTime) > 0 {
 			continue
 		}
