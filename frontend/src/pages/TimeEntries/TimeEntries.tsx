@@ -315,17 +315,30 @@ const PageTimeActions = ({
           marginTop: "1rem",
         }}
       >
-        <Button
-          variant="contained"
-          onClick={onCreateInvoice}
+        <Box
+          sx={{
+            display: "flex",
+          }}
         >
-          Create Invoice
-        </Button>
+          <Button
+            variant="contained"
+            onClick={onCreateInvoice}
+          >
+            Create Invoice
+          </Button>
+        </Box>
 
-        <UploadFile
-          onUpload={onUploadTimeSheets}
-          uploadLabel="Upload Time Sheets"
-        />
+        <Box
+          sx={{
+            display: "flex",
+            marginTop: "1rem",
+          }}
+        >
+          <UploadFile
+            onUpload={onUploadTimeSheets}
+            uploadLabel="Upload Time Sheets"
+          />
+        </Box>
       </Box>
     </Box>
   );

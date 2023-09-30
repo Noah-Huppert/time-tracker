@@ -117,7 +117,6 @@ func (r DBTimeEntryRepo) List(opts ListTimeEntriesOpts) ([]TimeEntry, error) {
 
 func (r DBTimeEntryRepo) Create(timeEntries []TimeEntry) (*CreateTimeEntriesRes, error) {
 	// Ensure all times are rounded
-
 	for entryI, entry := range timeEntries {
 		entry.RoundTimesToDB()
 		timeEntries[entryI] = entry

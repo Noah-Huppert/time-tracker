@@ -1,5 +1,5 @@
-import { Box, Button } from "@mui/material";
-import { ChangeEvent, useCallback, useState } from "react";
+import { Box, Button, Card, CardContent, Paper, Typography } from "@mui/material";
+import { ChangeEvent, useCallback, useRef, useState } from "react";
 
 export const UploadFile = ({
   onUpload,
@@ -8,7 +8,10 @@ export const UploadFile = ({
   readonly onUpload: (fileList: FileList) => void
   readonly uploadLabel: string
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<FileList | null>(null);
+
+  const [showingInput, setShowingInput] = useState(false);
 
   const onChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files === null) {
@@ -24,19 +27,81 @@ export const UploadFile = ({
     }
 
     onUpload(files);
+    onClearButtonClick();
+    setShowingInput(false);
   }, [files, onUpload])
 
-  return (
-    <Box>
-      <input type="file" onChange={onChange} />
+  const onClearButtonClick = useCallback(() => {
+    setShowingInput(false);
 
-      <Button
-        disabled={files === null}
-        onClick={onUploadButtonClick}
-      >
-        {uploadLabel}
-      </Button>
-    </Box>
+    if (fileInputRef.current === null) {
+      return;
+    }
+
+    fileInputRef.current.value = "";
+    setFiles(null);
+  }, [setFiles, fileInputRef]);
+
+  if (showingInput === false) {
+    return (
+      <Box>
+        <Button
+          variant="contained"
+          onClick={() => setShowingInput(true)}
+        >
+          {uploadLabel}
+        </Button>
+      </Box>
+    )
+  }
+
+  return (
+    <Card>
+      <CardContent>
+        <Typography
+          variant="body1"
+          sx={{
+            marginBottom: "1rem",
+          }}
+        >
+          {uploadLabel}
+        </Typography>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          onChange={onChange}
+          multiple
+          accept=".csv"
+        />
+
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            marginTop: "1rem",
+          }}
+        >
+          <Button
+            variant="contained"
+            onClick={onClearButtonClick}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            disabled={files === null}
+            variant="contained"
+            onClick={onUploadButtonClick}
+            sx={{
+              marginLeft: "1rem",
+            }}
+          >
+            Upload
+          </Button>
+        </Box>
+      </CardContent>
+    </Card>
   );
 };
 
