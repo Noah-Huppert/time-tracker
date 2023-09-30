@@ -50,7 +50,8 @@ func main() {
 	server := server.NewServer(server.NewServerOpts{
 		Logger: logger.With(zap.String("component", "api")),
 		Repos: models.NewRepos(models.NewReposOpts{
-			DB: db,
+			DB:     db,
+			Logger: logger.With(zap.String("component", "models")),
 		}),
 	})
 

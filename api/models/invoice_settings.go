@@ -5,13 +5,17 @@ import (
 	"fmt"
 	"os"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 // InvoiceSettings records details about how the user is paid for their work
 type InvoiceSettings struct {
 	// ID is the unique identifier
-	ID uint `gorm:"primarykey"`
+	ID uint `gorm:"primarykey" json:"-"`
+
+	// Slot is used to ensure that only one InvoiceSettings exists in the database
+	Slot string `gorm:"not null;unique" json:"-"`
 
 	// HourlyRate is the number of currency the user makes per hour of work
 	HourlyRate float32 `gorm:"not null" json:"hourly_rate"`
@@ -94,56 +98,64 @@ func (r JSONInvoiceSettingsRepo) Set(settings *InvoiceSettings) error {
 type DBInvoiceSettingsRepo struct {
 	// db is the database client
 	db *gorm.DB
+
+	// logger used to output runtime information
+	logger *zap.Logger
+}
+
+const DB_INVOICE_SETTINGS_SLOT = "primary"
+
+func (r DBInvoiceSettingsRepo) getRow() (*InvoiceSettings, error) {
+	var allSettings []InvoiceSettings
+	if res := r.db.Where("slot = ?", DB_INVOICE_SETTINGS_SLOT).Find(&allSettings); res.Error != nil {
+		return nil, fmt.Errorf("failed to run get row query: %s", res.Error)
+	}
+
+	if len(allSettings) == 0 {
+		return nil, nil
+	}
+
+	if len(allSettings) > 1 {
+		return nil, fmt.Errorf("%d row(s) found, only one row should exist", len(allSettings))
+	}
+
+	return &allSettings[0], nil
 }
 
 func (r DBInvoiceSettingsRepo) Get() (*InvoiceSettings, error) {
-	// Get all rows
-	var settings []InvoiceSettings
-	if res := r.db.Find(&settings); res.Error != nil {
-		return nil, fmt.Errorf("failed to run get query: %s", res.Error)
+	//  Get settings row
+	settings, err := r.getRow()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get single settings rows: %s", err)
 	}
 
-	// Initialize a settings if none exist
-	if len(settings) == 0 {
+	// Return default settings if none exist
+	if settings == nil {
 		initSettings := InvoiceSettings{}
-		if err := r.Set(&initSettings); err != nil {
-			return nil, fmt.Errorf("failed to add initial settings: %s", err)
-		}
-
 		return &initSettings, nil
 	}
 
-	// Check no more than 1 row exists
-	if len(settings) != 1 {
-		return nil, fmt.Errorf("%d invoice settings row(s) found, only one row should ever exist", len(settings))
-	}
-
-	return &settings[0], nil
+	return settings, nil
 }
 
-func (r DBInvoiceSettingsRepo) Set(settings *InvoiceSettings) error {
-	// Get all rows
-	var allSettings []InvoiceSettings
-	if res := r.db.Find(&allSettings); res.Error != nil {
-		return fmt.Errorf("failed to run get query: %s", res.Error)
+func (r DBInvoiceSettingsRepo) Set(newSettings *InvoiceSettings) error {
+	//  Get settings row
+	settings, err := r.getRow()
+	if err != nil {
+		return fmt.Errorf("failed to get single settings rows: %s", err)
 	}
 
 	// If no rows insert first row
-	if len(allSettings) == 0 {
-		if res := r.db.Create(settings); res.Error != nil {
+	if settings == nil {
+		newSettings.Slot = DB_INVOICE_SETTINGS_SLOT
+		if res := r.db.Create(newSettings); res.Error != nil {
 			return fmt.Errorf("failed to insert new settings: %s", res.Error)
 		}
 		return nil
 	}
 
-	// Check no more than 1 row exists
-	if len(allSettings) != 1 {
-		return fmt.Errorf("%d invoice settings row(s) found, only one row should ever exist", len(allSettings))
-	}
-
 	// Update
-	settings.ID = allSettings[0].ID
-	if res := r.db.Save(settings); res.Error != nil {
+	if res := r.db.Model(settings).UpdateColumns(newSettings); res.Error != nil {
 		return fmt.Errorf("failed to update existing settings: %s", res.Error)
 	}
 

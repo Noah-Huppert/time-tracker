@@ -6,6 +6,7 @@ import (
 	"io"
 	"time"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -52,20 +53,23 @@ type ListTimeEntriesOpts struct {
 type DBTimeEntryRepo struct {
 	// db client
 	db *gorm.DB
+
+	// logger used to output runtime information
+	logger *zap.Logger
 }
 
 func (r DBTimeEntryRepo) List(opts ListTimeEntriesOpts) ([]TimeEntry, error) {
 	// Base query
 	var timeEntries []TimeEntry
-	queryTx := r.db.Order("StartTime DESC")
+	queryTx := r.db.Order("start_time DESC")
 
 	// Filter options
 	if opts.StartDate != nil {
-		queryTx.Where("StartTime >= ?-?-?", opts.StartDate.Year(), opts.StartDate.Month(), opts.StartDate.Day())
+		queryTx.Where("start_time >= ?-?-?", opts.StartDate.Year(), opts.StartDate.Month(), opts.StartDate.Day())
 	}
 
 	if opts.EndDate != nil {
-		queryTx.Where("StartTime <= ?-?-?", opts.EndDate.Year(), opts.EndDate.Month(), opts.EndDate.Day())
+		queryTx.Where("start_time <= ?-?-?", opts.EndDate.Year(), opts.EndDate.Month(), opts.EndDate.Day())
 	}
 
 	// Run query
@@ -217,9 +221,7 @@ func (r CSVTimeEntryParser) Parse(csvIn io.Reader) ([]TimeEntry, error) {
 		}
 
 		// Save entry(s)
-		for _, entry := range entries {
-			timeEntries = append(timeEntries, entry)
-		}
+		timeEntries = append(timeEntries, entries...)
 	}
 
 	return timeEntries, nil

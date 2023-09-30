@@ -233,6 +233,7 @@ func (s Server) EPInvoiceSettingsSet(c *fiber.Ctx) error {
 		Recipient:  body.Recipient,
 		Sender:     body.Sender,
 	}
+	s.logger.Debug("EPInvoiceSettingsSet", zap.Any("newSettings", newSettings))
 	if err := s.repos.InvoiceSettings.Set(&newSettings); err != nil {
 		return fmt.Errorf("failed to set invoice settings: %s", err)
 	}
