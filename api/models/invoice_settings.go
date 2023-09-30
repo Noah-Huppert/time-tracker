@@ -131,8 +131,7 @@ func (r DBInvoiceSettingsRepo) Get() (*InvoiceSettings, error) {
 
 	// Return default settings if none exist
 	if settings == nil {
-		initSettings := InvoiceSettings{}
-		return &initSettings, nil
+		return nil, nil
 	}
 
 	return settings, nil

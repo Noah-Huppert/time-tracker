@@ -1,4 +1,4 @@
-import { Box, Card, CardContent, CardHeader, Typography } from "@mui/material";
+import { Box, Card, CardContent, Typography } from "@mui/material";
 import { Header } from "../../components/Header/Header";
 import { Link } from "react-router-dom";
 import { ROUTES } from "../../lib/routes";

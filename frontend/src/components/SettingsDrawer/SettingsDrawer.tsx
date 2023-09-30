@@ -21,7 +21,7 @@ function draftInvoiceSettingsFromSchemaType(settings: InvoiceSettingsSchemaType)
   }
 }
 
-function schemaInvoiceSettingsFromDraftType(settings: DraftInvoiceSettings): InvoiceSettingsSchemaType {
+function schemaInvoiceSettingsFromDraftType(settings: DraftInvoiceSettings): Omit<InvoiceSettingsSchemaType, "id"> {
   return {
     hourly_rate: parseFloat(settings.hourly_rate),
     recipient: settings.recipient,
@@ -73,6 +73,7 @@ export const SettingsDrawer = ({
       return;
     }
 
+    // Set settings
     setUpdateInvoiceSettingsLoading(true);
 
     const settings = schemaInvoiceSettingsFromDraftType(invoiceSettings);
@@ -84,6 +85,7 @@ export const SettingsDrawer = ({
 
     setUpdateInvoiceSettingsLoading(false);
 
+    // Handle error
     if (isLeft(res)) {
       toast({
         kind: "error",
@@ -93,13 +95,24 @@ export const SettingsDrawer = ({
       return;
     }
 
+    // Check if no settings exist
+    if (res.right === null) {
+      setInvoiceSettings(draftInvoiceSettingsFromSchemaType({
+        id: 0,
+        hourly_rate: 0,
+        recipient: "",
+        sender: "",
+      }));
+      return;
+    }
+
     setInvoiceSettings(draftInvoiceSettingsFromSchemaType(res.right));
 
     toast({
       kind: "success",
       message: "Updated invoice settings",
     })
-  }, [invoiceSettings, setInvoiceSettings, setUpdateInvoiceSettingsLoading]);
+  }, [toast, invoiceSettings, setInvoiceSettings, setUpdateInvoiceSettingsLoading]);
 
   return (
     <Drawer

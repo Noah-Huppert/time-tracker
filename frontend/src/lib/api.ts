@@ -171,7 +171,7 @@ export const api = {
     }) => makeReq({
       path: "invoice-settings/",
       method: "PUT",
-      shape: invoiceSettingsSchema,
+      shape: z.nullable(invoiceSettingsSchema),
       body: {
         hourly_rate: hourlyRate,
         recipient,

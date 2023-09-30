@@ -1,12 +1,12 @@
-import { Box, CircularProgress, TableContainer, Typography, TableHead, Table, TableCell, TableBody, TableRow, styled, tableCellClasses, Button, Link, AppBar, Container, Toolbar } from "@mui/material";
-import { MutableRefObject, ReactInstance, forwardRef, useCallback, useEffect, useRef, useState } from "react";
-import { InvoiceSchemaType, InvoiceSettingsSchemaType, InvoiceTimeEntrySchemaType, ListTimeEntriesSchemaType, TimeEntrySchemaType, api } from "../../lib/api";
+import { Box, CircularProgress, TableContainer, Typography, TableHead, Table, TableCell, TableBody, TableRow, styled, tableCellClasses, Button, AppBar, Container, Toolbar } from "@mui/material";
+import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
+import { InvoiceSchemaType, InvoiceTimeEntrySchemaType, api } from "../../lib/api";
 import { isLeft } from "fp-ts/lib/Either";
 import WarningIcon from "@mui/icons-material/Warning";
-import { Link as RouterLink, useParams, useSearchParams } from "react-router-dom";
-import { QUERY_PARAMS, ROUTES } from "../../lib/routes";
+import { Link as RouterLink, useParams } from "react-router-dom";
+import { ROUTES } from "../../lib/routes";
 import dayjs from "dayjs";
-import dayjsDuration, { Duration } from "dayjs/plugin/duration";
+import dayjsDuration from "dayjs/plugin/duration";
 import { nanosecondsToDuration } from "../../lib/time";
 import { useReactToPrint } from "react-to-print";
 import PrintIcon from '@mui/icons-material/Print';
@@ -110,7 +110,7 @@ export const Invoice = forwardRef((props, ref) => {
     }
 
     fetchInvoice(Number(invoiceID));
-  }, [invoiceID])
+  }, [invoiceID, fetchInvoice])
 
   if (invoice === "loading") {
     return (

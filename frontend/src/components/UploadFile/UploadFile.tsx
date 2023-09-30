@@ -1,4 +1,4 @@
-import { Box, Button, Card, CardContent, Paper, Typography } from "@mui/material";
+import { Box, Button, Card, CardContent, Typography } from "@mui/material";
 import { ChangeEvent, useCallback, useRef, useState } from "react";
 
 export const UploadFile = ({
@@ -29,7 +29,7 @@ export const UploadFile = ({
     onUpload(files);
     onClearButtonClick();
     setShowingInput(false);
-  }, [files, onUpload])
+  }, [files, onUpload, onClearButtonClick])
 
   const onClearButtonClick = useCallback(() => {
     setShowingInput(false);

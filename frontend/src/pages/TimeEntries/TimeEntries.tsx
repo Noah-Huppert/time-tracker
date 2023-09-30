@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useState } from "react";
-import { api, InvoiceSettingsSchemaType, ListTimeEntriesSchemaType, TimeEntrySchemaType, CSVFile } from "../../lib/api";
+import { api, InvoiceSettingsSchemaType, ListTimeEntriesSchemaType, TimeEntrySchemaType } from "../../lib/api";
 import {
   Box,
   Button,
@@ -98,7 +98,7 @@ export const PageTimeEntries = () => {
     navigate(ROUTES.viewInvoice.make({
       invoiceID: invoice.right.id,
     }));
-  }, [filterStartDate, filterEndDate]);
+  }, [filterStartDate, filterEndDate, navigate, toast]);
 
   const onUploadTimeSheets = useCallback(async (fileList: FileList) => {
     // Get file content
@@ -134,7 +134,7 @@ export const PageTimeEntries = () => {
     });
 
     await fetchTimeEntries();
-  }, []);
+  }, [fetchTimeEntries, toast]);
 
   useEffect(() => {
     fetchTimeEntries();
@@ -268,7 +268,7 @@ const PageTimeInformationContent = ({
 
   useEffect(() => {
     fetchInvoiceSettings();
-  }, [])
+  }, [fetchInvoiceSettings])
 
   if (timeEntries === "loading"  || invoiceSettings === "loading") {
     return (

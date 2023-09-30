@@ -9,7 +9,7 @@ export type ToastOpts = {
   readonly kind: "success"
   readonly message: string
 }
-export const ToastCtx = createContext((opts: ToastOpts) => {})
+export const ToastCtx = createContext(() => {})
 type ToastItem = ToastOpts & {
   readonly id: string
 }
