@@ -3,8 +3,8 @@ import { Either, left, right } from "fp-ts/lib/Either";
 
 const timeEntrySchema = z.object({
   id: z.number(),
-  start_time: z.string(),
-  end_time: z.string(),
+  start_time: z.coerce.date(),
+  end_time: z.coerce.date(),
   comment: z.string(),
   duration: z.number(),
 });
@@ -41,18 +41,21 @@ const invoiceTimeEntrySchema = z.object({
   time_entry_id: z.number(),
   time_entry: timeEntrySchema,
 })
+export type InvoiceTimeEntrySchemaType = z.infer<typeof invoiceTimeEntrySchema>;
 
 const invoiceSchema = z.object({
   id: z.number(),
   invoice_settings_id: z.number(),
-  start_date: z.string(),
-  end_date: z.string(),
-  sent_to_client: z.nullable(z.string()),
-  paid_by_client: z.nullable(z.string()),
+  start_date: z.coerce.date(),
+  end_date: z.coerce.date(),
+  duration: z.number(),
+  amount_due: z.number(),
+  sent_to_client: z.nullable(z.coerce.date()),
+  paid_by_client: z.nullable(z.coerce.date()),
   invoice_settings: invoiceSettingsSchema,
   invoice_time_entries: z.array(invoiceTimeEntrySchema),
-})
-export type InvoiceSchemaType = z.TypeOf<typeof invoiceSchema>;
+});
+export type InvoiceSchemaType = z.infer<typeof invoiceSchema>;
 
 export type CSVFile = {
   readonly name: string
@@ -204,7 +207,7 @@ export const api = {
       method: "POST",
       shape: invoiceSchema,
       body: {
-        invoice_settings_ids: invoiceSettingsID,
+        invoice_settings_id: invoiceSettingsID,
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
       }

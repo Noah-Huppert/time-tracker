@@ -54,17 +54,49 @@ export const PageTimeEntries = () => {
     setTimeEntries(res.right);
   }, [filterStartDate, filterEndDate]);
 
-  const onCreateInvoice = useCallback(() => {
-    const qpEndDate = filterEndDate;
-    if (qpEndDate !== null) {
-      qpEndDate.setHours(23);
-      qpEndDate.setMinutes(59);
-      qpEndDate.setSeconds(59);
+  const onCreateInvoice = useCallback(async () => {
+    if (filterStartDate === null) {
+      toast({
+        kind: "error",
+        message: "Start date required to make an invoice",
+      });
+      return;
     }
 
-    navigate(ROUTES.createInvoice.make({
+    if (filterEndDate === null) {
+      toast({
+        kind: "error",
+        message: "End date required to make an invoice",
+      });
+      return;
+    }
+
+    const invoiceSettings = await api.invoiceSettings.get();
+    if (isLeft(invoiceSettings)) {
+      console.error(`Failed to get invoice settings: ${invoiceSettings.left}`);
+      toast({
+        kind: "error",
+        message: "Failed to create invoice, problem while getting invoice settings",
+      });
+      return;
+    }
+
+    const invoice = await api.invoices.create({
+      invoiceSettingsID: invoiceSettings.right.id,
       startDate: filterStartDate,
-      endDate: qpEndDate,
+      endDate: filterEndDate,
+    });
+    if (isLeft(invoice)) {
+      console.error(`Failed to create invoice: ${invoice.left}`);
+      toast({
+        kind: "error",
+        message: "Failed to create invoice",
+      });
+      return;
+    }
+
+    navigate(ROUTES.viewInvoice.make({
+      invoiceID: invoice.right.id,
     }));
   }, [filterStartDate, filterEndDate]);
 
@@ -406,8 +438,8 @@ const TimeEntryTableRow = ({
 
   return (
     <TableRow>
-      <TableCell>{timeEntry.start_time}</TableCell>
-      <TableCell>{timeEntry.end_time}</TableCell>
+      <TableCell>{timeEntry.start_time.toISOString()}</TableCell>
+      <TableCell>{timeEntry.end_time.toISOString()}</TableCell>
       <TableCell>{duration.format("HH:mm:ss")}</TableCell>
       <TableCell>{timeEntry.comment}</TableCell>
     </TableRow>

@@ -47,7 +47,7 @@ export const Header = () => {
                   Home
                 </Link>
 
-                <Link to={ROUTES.time_entries.make()}>
+                <Link to={ROUTES.timeEntries.make()}>
                   Time Entries
                 </Link>
 

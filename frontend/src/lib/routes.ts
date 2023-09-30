@@ -4,7 +4,7 @@ export const ROUTES = {
     make: () => "/",
   },
 
-  time_entries: {
+  timeEntries: {
     pattern: "/time-entries",
     make: () => "/time-entries",
   },
@@ -14,31 +14,14 @@ export const ROUTES = {
     make: () => "/invoices",
   },
 
-  createInvoice: {
-    pattern: "/invoice",
+  viewInvoice: {
+    pattern: "/invoices/:id",
     make: ({
-      startDate,
-      endDate,
+      invoiceID,
     }: {
-      readonly startDate: Date | null
-      readonly endDate: Date | null
-    }) => {
-      // Include query parameters
-      const queryParams: {[key: string]: string} = {};
-      if (startDate !== null) {
-        queryParams[QUERY_PARAMS.invoice.startDate] = startDate.toISOString();
-      }
-
-      if (endDate !== null) {
-        queryParams[QUERY_PARAMS.invoice.endDate] = endDate.toISOString();
-      }
-
-      const queryParamsStr = new URLSearchParams(queryParams).toString();
-
-      // URL
-      return `/invoice?${queryParamsStr}`;
-    }
-  },
+      readonly invoiceID: number,
+    }) => `/invoices/${invoiceID}`,
+  }
 };
 
 export const QUERY_PARAMS = {

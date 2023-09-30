@@ -11,7 +11,7 @@ export const PageHome = () => {
         <RoutePaper
           name="Time Entries"
           description="List time entries"
-          to={ROUTES.time_entries.make()}
+          to={ROUTES.timeEntries.make()}
         />
 
         <RoutePaper

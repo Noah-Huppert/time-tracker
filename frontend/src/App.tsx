@@ -11,7 +11,7 @@ import '@fontsource/roboto/700.css';
 import { createTheme, CssBaseline, ThemeProvider } from "@mui/material";
 import { ToastProvider } from "./components/Toast/Toast";
 import { ROUTES } from "./lib/routes";
-import { PageCreateInvoice } from "./pages/CreateInvoice/CreateInvoice";
+import { PageViewInvoice } from "./pages/ViewInvoice/ViewInvoice";
 import { PageHome } from "./pages/Home/Home";
 
 const theme = createTheme({      
@@ -28,12 +28,12 @@ const router = createBrowserRouter([
     element: <PageHome />
   },
   {
-    path: ROUTES.time_entries.pattern,
+    path: ROUTES.timeEntries.pattern,
     element: <PageTimeEntries />,
   },
   {
-    path: ROUTES.createInvoice.pattern,
-    element: <PageCreateInvoice />
+    path: ROUTES.viewInvoice.pattern,
+    element: <PageViewInvoice />
   },
 ]);
 

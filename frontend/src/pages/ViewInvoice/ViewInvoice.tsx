@@ -1,9 +1,9 @@
 import { Box, CircularProgress, TableContainer, Typography, TableHead, Table, TableCell, TableBody, TableRow, styled, tableCellClasses, Button, Link, AppBar, Container, Toolbar } from "@mui/material";
 import { MutableRefObject, ReactInstance, forwardRef, useCallback, useEffect, useRef, useState } from "react";
-import { InvoiceSettingsSchemaType, ListTimeEntriesSchemaType, TimeEntrySchemaType, api } from "../../lib/api";
+import { InvoiceSchemaType, InvoiceSettingsSchemaType, InvoiceTimeEntrySchemaType, ListTimeEntriesSchemaType, TimeEntrySchemaType, api } from "../../lib/api";
 import { isLeft } from "fp-ts/lib/Either";
 import WarningIcon from "@mui/icons-material/Warning";
-import { Link as RouterLink, useSearchParams } from "react-router-dom";
+import { Link as RouterLink, useParams, useSearchParams } from "react-router-dom";
 import { QUERY_PARAMS, ROUTES } from "../../lib/routes";
 import dayjs from "dayjs";
 import dayjsDuration, { Duration } from "dayjs/plugin/duration";
@@ -37,7 +37,7 @@ const TABLE_COL_WIDTHS = [
   300,
 ]
 
-export const PageCreateInvoice = () => {
+export const PageViewInvoice = () => {
   const ref = useRef(null);
   const onPrint = useReactToPrint({
     content: () => ref.current,
@@ -57,7 +57,7 @@ export const PageCreateInvoice = () => {
             <Button
               component={RouterLink}
               startIcon={<ArrowBackIcon />}
-              to={ROUTES.time_entries.make()}
+              to={ROUTES.timeEntries.make()}
               variant="contained"
               color="secondary"
             >
@@ -86,57 +86,33 @@ export const PageCreateInvoice = () => {
 }
 
 export const Invoice = forwardRef((props, ref) => {
-  const [invoiceSettings, setInvoiceSettings] = useState<InvoiceSettingsSchemaType | "loading" | "error">("loading");
-  const [timeEntries, setTimeEntries] = useState<ListTimeEntriesSchemaType | "loading" | "error">("loading");
+  const [invoice, setInvoice] = useState<InvoiceSchemaType | "loading" | "error">("loading");
+  const { id: invoiceID } = useParams();
 
-  const [queryParams] = useSearchParams();
-  const startDateStr = queryParams.get(QUERY_PARAMS.invoice.startDate);
-  const endDateStr = queryParams.get(QUERY_PARAMS.invoice.endDate);
-
-  const fetchInvoiceSettings = useCallback(async () => {
-    const res = await api.invoiceSettings.get();
+  const fetchInvoice = useCallback(async (invoiceID: number) => {
+    const res = await api.invoices.list({
+      ids: [
+        invoiceID,
+      ]
+    });
     if (isLeft(res)) {
-      setInvoiceSettings("error");
+      setInvoice("error")
       return;
     }
 
-    setInvoiceSettings(res.right);
+    setInvoice(res.right[0]);
   }, []);
 
-  const fetchTimeEntries = useCallback(async ({
-    startDate,
-    endDate,
-  }: {
-    readonly startDate: Date | null
-    readonly endDate: Date | null
-  }) => {
-    const res = await api.timeEntries.list({
-      startDate: startDate,
-      endDate: endDate,
-    });
-    if (isLeft(res)) {
-      setTimeEntries("error");
+  useEffect(() => {
+    if (invoiceID === undefined) {
+      setInvoice("error");
       return;
     }
 
-    setTimeEntries(res.right);
-  }, [])
+    fetchInvoice(Number(invoiceID));
+  }, [invoiceID])
 
-  useEffect(() => {
-    fetchInvoiceSettings();
-  }, [])
-
-  useEffect(() => {
-    const startDate = startDateStr !== null ? new Date(startDateStr) : null;
-    const endDate = endDateStr !== null ? new Date(endDateStr) : null;
-
-    fetchTimeEntries({
-      startDate,
-      endDate,
-    });
-  }, [startDateStr, endDateStr])
-
-  if (invoiceSettings === "loading" || timeEntries === "loading") {
+  if (invoice === "loading") {
     return (
       <>
         <CircularProgress size="medium" />
@@ -147,7 +123,7 @@ export const Invoice = forwardRef((props, ref) => {
     );
   }
 
-  if (invoiceSettings === "error" || timeEntries === "error") {
+  if (invoice === "error") {
     return (
       <>
         <WarningIcon />
@@ -157,38 +133,6 @@ export const Invoice = forwardRef((props, ref) => {
       </>
     );
   }
-
-  if (timeEntries.time_entries.length === 0) {
-    return (
-      <>
-        <Typography>
-          <WarningIcon />
-          Cannot make invoice for no entries
-        </Typography>
-      </>
-    )
-  }
-  
-  // Calculate details about invoice
-  let popStart = startDateStr !== null ? new Date(startDateStr) : null;
-  let popEnd = endDateStr !== null ? new Date(endDateStr) : null;
-
-  if (popStart === null) {
-    popStart = new Date(timeEntries.time_entries[0].start_time)
-    popStart.setHours(0);
-    popStart.setMinutes(0);
-    popStart.setSeconds(0);
-  }
-
-  if (popEnd === null) {
-    popEnd = new Date(timeEntries.time_entries[timeEntries.time_entries.length - 1].end_time)
-    popEnd.setHours(0);
-    popEnd.setMinutes(0);
-    popEnd.setSeconds(0);
-  }
-
-  const totalDuration = nanosecondsToDuration(timeEntries.total_duration);
-  const amountDue = invoiceSettings.hourly_rate * totalDuration.asHours();
 
   return (
     <Box
@@ -206,10 +150,10 @@ export const Invoice = forwardRef((props, ref) => {
         }}
       >
         <InvoiceHeader
-          recipient={invoiceSettings.recipient}
-          sender={invoiceSettings.sender}
-          periodStart={popStart}
-          periodEnd={popEnd}
+          recipient={invoice.invoice_settings.recipient}
+          sender={invoice.invoice_settings.sender}
+          periodStart={invoice.start_date}
+          periodEnd={invoice.end_date}
         />
 
         <Box
@@ -218,10 +162,10 @@ export const Invoice = forwardRef((props, ref) => {
           }}
         >
           <SummaryTable
-            periodStart={popStart}
-            periodEnd={popEnd}
-            totalDuration={totalDuration}
-            amountDue={amountDue}
+            periodStart={invoice.start_date}
+            periodEnd={invoice.end_date}
+            totalDuration={invoice.duration}
+            amountDue={invoice.amount_due}
           />
         </Box>
 
@@ -231,7 +175,7 @@ export const Invoice = forwardRef((props, ref) => {
           }}
         >
           <TimeEntriesTable
-            timeEntries={timeEntries.time_entries}
+            timeEntries={invoice.invoice_time_entries}
           />
         </Box>
       </Box>
@@ -346,7 +290,7 @@ const SummaryTable = ({
 }: {
   readonly periodStart: Date
   readonly periodEnd: Date
-  readonly totalDuration: Duration
+  readonly totalDuration: number
   readonly amountDue: number
 }) => {
   return (
@@ -377,7 +321,7 @@ const SummaryTable = ({
               </BorderedTableCell>
 
               <BorderedTableCell>
-                {totalDuration.format(DURATION_FORMAT)}
+                {nanosecondsToDuration(totalDuration).format(DURATION_FORMAT)}
               </BorderedTableCell>
 
               <BorderedTableCell>
@@ -394,8 +338,9 @@ const SummaryTable = ({
 const TimeEntriesTable = ({
   timeEntries
 }: {
-  readonly timeEntries: TimeEntrySchemaType[]
+  readonly timeEntries: InvoiceTimeEntrySchemaType[]
 }) => {
+  console.log(timeEntries[0].time_entry.duration)
   return (
     <>
       Timesheet:
@@ -415,21 +360,21 @@ const TimeEntriesTable = ({
           </TableHead>
           <TableBody>
             {timeEntries.map((timeEntry) => (
-              <TableRow key={`invoice-timesheet-${timeEntry.hash}`}>
+              <TableRow key={`invoice-timesheet-${timeEntry.id}`}>
                 <BorderedTableCell>
-                  {dayjs(timeEntry.start_time).format(DATE_FORMAT)}
+                  {dayjs(timeEntry.time_entry.start_time).format(DATE_FORMAT)}
                 </BorderedTableCell>
 
                 <BorderedTableCell>
-                  {dayjs(timeEntry.end_time).format(DATE_FORMAT)}
+                  {dayjs(timeEntry.time_entry.end_time).format(DATE_FORMAT)}
                 </BorderedTableCell>
 
                 <BorderedTableCell>
-                  {nanosecondsToDuration(timeEntry.duration).format(DURATION_FORMAT)}
+                  {nanosecondsToDuration(timeEntry.time_entry.duration).format(DURATION_FORMAT)}
                 </BorderedTableCell>
 
                 <BorderedTableCell>
-                  {timeEntry.comment.length > 0 ? timeEntry.comment : '\u00A0'}
+                  {timeEntry.time_entry.comment.length > 0 ? timeEntry.time_entry.comment : '\u00A0'}
                 </BorderedTableCell>
               </TableRow>
             ))}

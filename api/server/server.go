@@ -180,21 +180,14 @@ func (s Server) EPTimeEntriesList(c *fiber.Ctx) error {
 	}
 
 	// Add additional fields onto time entries
-	listItems := []TimeEntryListItem{}
 	var totalDuration time.Duration
 
 	for _, timeEntry := range timeEntries {
-		duration := timeEntry.Duration()
-		totalDuration += duration
-
-		listItems = append(listItems, TimeEntryListItem{
-			TimeEntry: timeEntry,
-			Duration:  duration,
-		})
+		totalDuration += timeEntry.Duration
 	}
 
 	return c.JSON(EPTimeEntriesListResp{
-		TimeEntries:   listItems,
+		TimeEntries:   timeEntries,
 		TotalDuration: totalDuration,
 	})
 }
@@ -310,18 +303,10 @@ type CSVImportItem struct {
 // EPTimeEntriesListResp is the list time entries endpoint response
 type EPTimeEntriesListResp struct {
 	// TimeEntries is the list of time entries
-	TimeEntries []TimeEntryListItem `json:"time_entries"`
+	TimeEntries []models.TimeEntry `json:"time_entries"`
 
 	// TotalDuration is the duration of each time entry added up
 	TotalDuration time.Duration `json:"total_duration"`
-}
-
-// TimeEntryListItem is a time entry item in a list endpoint response
-type TimeEntryListItem struct {
-	models.TimeEntry
-
-	// Duration of the time entry
-	Duration time.Duration `json:"duration"`
 }
 
 // EPInvoiceSettingsGet gets invoice settings
@@ -359,7 +344,7 @@ func (s Server) EPInvoiceSettingsSet(c *fiber.Ctx) error {
 // EPInvoiceSettingsSetReq is the set invoice settings request body
 type EPInvoiceSettingsSetReq struct {
 	// HourlyRate is the new hourly rate value
-	HourlyRate float32 `json:"hourly_rate" validate:"required"`
+	HourlyRate float64 `json:"hourly_rate" validate:"required"`
 
 	// Recipient is the new recipient value
 	Recipient string `json:"recipient" validate:"required"`
@@ -440,7 +425,7 @@ func (s Server) EPInvoiceCreate(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to create invoice: %s", err)
 	}
 
-	return c.JSON(res)
+	return c.JSON(res.Invoice)
 }
 
 // EPInvoiceCreateReq is the create invoice request body

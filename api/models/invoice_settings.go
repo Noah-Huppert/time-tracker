@@ -18,7 +18,7 @@ type InvoiceSettings struct {
 	Slot string `gorm:"not null;unique" json:"-"`
 
 	// HourlyRate is the number of currency the user makes per hour of work
-	HourlyRate float32 `gorm:"not null" json:"hourly_rate"`
+	HourlyRate float64 `gorm:"not null" json:"hourly_rate"`
 
 	// Recipient is information about the person who is receiving the invoice
 	Recipient string `gorm:"not null" json:"recipient"`

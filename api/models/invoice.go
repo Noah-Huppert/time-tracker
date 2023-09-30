@@ -8,6 +8,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// HOUR_IN_NANOSECONDS is the number of nanoseconds in an hour
+const HOUR_AS_NANOSECONDS = 3.6e+12
+
 // Invoice is a record of time entries over a certain time period
 type Invoice struct {
 	// ID is a unique ID
@@ -21,6 +24,12 @@ type Invoice struct {
 
 	// EndDate is the date on which the invoice time entries ended
 	EndDate time.Time `gorm:"not null" json:"end_date"`
+
+	// Duration of time of time entries in invoice
+	Duration time.Duration `gorm:"not null" json:"duration"`
+
+	// AmountDue is the amount of money due for the duration of time
+	AmountDue float64 `gorm:"not null" json:"amount_due"`
 
 	// SentToClient if not null the invoice has been sent to a client on that date
 	SentToClient *time.Time `json:"sent_to_client"`
@@ -117,6 +126,15 @@ type DBInvoiceRepo struct {
 }
 
 func (r DBInvoiceRepo) Create(opts CreateInvoiceOpts) (*CreateInvoiceRes, error) {
+	// Calculate total duration
+	duration := time.Duration(0)
+	for _, entry := range opts.TimeEntries {
+		duration += entry.Duration
+	}
+
+	// Calculate amount due
+	amountDue := duration.Hours() * opts.InvoiceSettings.HourlyRate
+
 	// Create invoice
 	invoice := Invoice{
 		InvoiceSettingsID: opts.InvoiceSettings.ID,
@@ -124,8 +142,10 @@ func (r DBInvoiceRepo) Create(opts CreateInvoiceOpts) (*CreateInvoiceRes, error)
 		EndDate:           opts.EndDate,
 		SentToClient:      nil,
 		PaidByClient:      nil,
+		Duration:          duration,
+		AmountDue:         amountDue,
 	}
-	if res := r.db.Create(invoice); res.Error != nil {
+	if res := r.db.Create(&invoice); res.Error != nil {
 		return nil, fmt.Errorf("failed to run create query: %s", res.Error)
 	}
 
@@ -140,6 +160,8 @@ func (r DBInvoiceRepo) Create(opts CreateInvoiceOpts) (*CreateInvoiceRes, error)
 	if res := r.db.Create(&invoiceTimeEntries); res.Error != nil {
 		return nil, fmt.Errorf("failed to run create invoice time entries query: %s", res.Error)
 	}
+	invoice.InvoiceTimeEntries = invoiceTimeEntries
+	invoice.InvoiceSettings = opts.InvoiceSettings
 
 	return &CreateInvoiceRes{
 		Invoice:            invoice,
@@ -148,7 +170,7 @@ func (r DBInvoiceRepo) Create(opts CreateInvoiceOpts) (*CreateInvoiceRes, error)
 }
 
 func (r DBInvoiceRepo) List(opts ListInvoicesOpts) ([]Invoice, error) {
-	tx := r.db.Model(&Invoice{})
+	tx := r.db.Model(&Invoice{}).Preload("InvoiceTimeEntries").Preload("InvoiceTimeEntries.TimeEntry").Preload("InvoiceSettings")
 	if len(opts.IDs) > 0 {
 		tx.Where("id IN ?", opts.IDs)
 	}

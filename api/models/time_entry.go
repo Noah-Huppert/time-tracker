@@ -22,6 +22,9 @@ type TimeEntry struct {
 	// EndTime is the date and time when the period ended
 	EndTime time.Time `gorm:"not null;index:time_entry_identity_unique,unique" json:"end_time"`
 
+	// Duration is the amount of time between the start and end time
+	Duration time.Duration `gorm:"not null" json:"duration"`
+
 	// Command is an optional comment explaining what work was completed during the period
 	Comment string `gorm:"not null;index:time_entry_identity_unique,unique" json:"comment"`
 
@@ -33,7 +36,7 @@ type TimeEntry struct {
 }
 
 // Duration of the time entry
-func (e TimeEntry) Duration() time.Duration {
+func (e TimeEntry) ComputeDuration() time.Duration {
 	return e.EndTime.Sub(e.StartTime)
 }
 
@@ -316,5 +319,12 @@ func (r CSVTimeEntryParser) Parse(csvIn io.Reader) ([]TimeEntry, error) {
 		timeEntries = append(timeEntries, entries...)
 	}
 
-	return timeEntries, nil
+	// Computed fields
+	computedTimeEntries := []TimeEntry{}
+	for _, entry := range timeEntries {
+		entry.Duration = entry.ComputeDuration()
+		computedTimeEntries = append(computedTimeEntries, entry)
+	}
+
+	return computedTimeEntries, nil
 }
