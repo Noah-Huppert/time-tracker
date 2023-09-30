@@ -209,26 +209,42 @@ func (s Server) EPTimeEntriesUploadCSV(c *fiber.Ctx) error {
 		ColumnEndTime:   "time ended",
 		ColumnComment:   "comment",
 	})
-	entries := []models.TimeEntry{}
+
+	csvImports := []models.CSVImport{}
+	existingTimeEntries := []models.TimeEntry{}
+	newTimeEntries := []models.TimeEntry{}
 
 	for _, file := range body.CSVFiles {
+		// Parse time entries
 		parsedEntries, err := csvParser.Parse(strings.NewReader(file.Content))
 		if err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("failed to parse '%s': %s", file.Name, err))
 		}
 
-		entries = append(entries, parsedEntries...)
-	}
+		// Create CSV import
+		csvImport := models.CSVImport{
+			FileName:     file.Name,
+			FileContents: file.Content,
+		}
+		if err := s.repos.CSVImport.Create(&csvImport); err != nil {
+			return fmt.Errorf("failed to create CSV import for '%s' file: %s", file.Name, err)
+		}
+		csvImports = append(csvImports, csvImport)
 
-	// Add new entries into db
-	insertRes, err := s.repos.TimeEntry.Create(entries)
-	if err != nil {
-		return fmt.Errorf("failed to insert entries: %s", err)
+		// Add new entries into db
+		insertRes, err := s.repos.TimeEntry.Create(csvImport, parsedEntries)
+		if err != nil {
+			return fmt.Errorf("failed to insert entries: %s", err)
+		}
+
+		existingTimeEntries = append(existingTimeEntries, insertRes.ExistingEntries...)
+		newTimeEntries = append(newTimeEntries, insertRes.NewEntries...)
 	}
 
 	return c.JSON(EPTimeEntriesUploadCSVResp{
-		ExistingTimeEntries: insertRes.ExistingEntries,
-		NewTimeEntries:      insertRes.NewEntries,
+		ExistingTimeEntries: existingTimeEntries,
+		NewTimeEntries:      newTimeEntries,
+		CSVImports:          csvImports,
 	})
 }
 
@@ -253,6 +269,9 @@ type EPTimeEntriesUploadCSVResp struct {
 
 	// NewTimeEntries are time entries which were newly created
 	NewTimeEntries []models.TimeEntry `json:"new_time_entries"`
+
+	// CSVImports are the CSV import records created during the import
+	CSVImports []models.CSVImport
 }
 
 // EPTimeEntriesListResp is the list time entries endpoint response

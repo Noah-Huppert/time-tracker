@@ -24,6 +24,12 @@ type TimeEntry struct {
 
 	// Command is an optional comment explaining what work was completed during the period
 	Comment string `gorm:"not null;index:time_entry_identity_unique,unique" json:"comment"`
+
+	// CSVImportID is the ID of the CSVImport which created the time entry
+	CSVImportID uint `gorm:"not null" json:"csv_import_id"`
+
+	// CSVImport is an ORM filled reference filled by the CSVImportID foreign key
+	CSVImport CSVImport `json:"-"`
 }
 
 // Duration of the time entry
@@ -62,7 +68,7 @@ type TimeEntryRepo interface {
 	List(opts ListTimeEntriesOpts) ([]TimeEntry, error)
 
 	// Create time entries, should not insert duplicate time entries (duplicate meaning all fields except ID are the same)
-	Create(timeEntries []TimeEntry) (*CreateTimeEntriesRes, error)
+	Create(csvImport CSVImport, timeEntries []TimeEntry) (*CreateTimeEntriesRes, error)
 }
 
 // ListTimeEntriesOpts are options for listing time entries
@@ -115,7 +121,7 @@ func (r DBTimeEntryRepo) List(opts ListTimeEntriesOpts) ([]TimeEntry, error) {
 	return timeEntries, nil
 }
 
-func (r DBTimeEntryRepo) Create(timeEntries []TimeEntry) (*CreateTimeEntriesRes, error) {
+func (r DBTimeEntryRepo) Create(csvImport CSVImport, timeEntries []TimeEntry) (*CreateTimeEntriesRes, error) {
 	// Ensure all times are rounded
 	for entryI, entry := range timeEntries {
 		entry.RoundTimesToDB()
@@ -155,7 +161,8 @@ func (r DBTimeEntryRepo) Create(timeEntries []TimeEntry) (*CreateTimeEntriesRes,
 		}
 
 		if _, ok := existingEntriesHashes[hash]; !ok {
-			r.logger.Debug("arg time entry", zap.String("hash", hash))
+			// Associate with CSV import
+			entry.CSVImportID = csvImport.ID
 			toCreateEntries = append(toCreateEntries, entry)
 		}
 	}
@@ -271,9 +278,14 @@ func (r CSVTimeEntryParser) Parse(csvIn io.Reader) ([]TimeEntry, error) {
 				Comment:   row[headerMap[r.columnComment]],
 			},
 		}
+		entries[0].RoundTimesToDB()
 
 		// Check if time passes over day boundary
 		if startTime.Day() != endTime.Day() || startTime.Month() != endTime.Month() || startTime.Year() != endTime.Year() {
+			// Use rounded times
+			startTime = entries[0].StartTime
+			endTime = entries[0].EndTime
+
 			// Make two entries, one that goes from the start time to the end of the day, and another which goes from midnight the following day to the following end time
 			totalDuration := endTime.Sub(startTime)
 
