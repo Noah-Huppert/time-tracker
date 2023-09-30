@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -60,13 +61,16 @@ func (s Server) Listen(ctxPair gointerrupt.CtxPair, addr string) error {
 	app.Use(cors.New())
 
 	// Setup routes
-	app.Get("/api/v0/health", s.EPHealth)
+	app.Get("/api/v0/health/", s.EPHealth)
 
-	app.Get("/api/v0/time-entries", s.EPTimeEntriesList)
-	app.Post("/api/v0/time-entries/upload-csv", s.EPTimeEntriesUploadCSV)
+	app.Get("/api/v0/time-entries/", s.EPTimeEntriesList)
+	app.Post("/api/v0/time-entries/upload-csv/", s.EPTimeEntriesUploadCSV)
 
-	app.Get("/api/v0/invoice-settings", s.EPInvoiceSettingsGet)
-	app.Put("/api/v0/invoice-settings", s.EPInvoiceSettingsSet)
+	app.Get("/api/v0/invoice-settings/", s.EPInvoiceSettingsGet)
+	app.Put("/api/v0/invoice-settings/", s.EPInvoiceSettingsSet)
+
+	app.Get("/api/v0/invoices/", s.EPInvoiceList)
+	app.Post("/api/v0/invoices/", s.EPInvoiceCreate)
 
 	// Setup server graceful shutdown
 	shutdownErr := make(chan error, 1)
@@ -362,4 +366,91 @@ type EPInvoiceSettingsSetReq struct {
 
 	// Sender is the new sender value
 	Sender string `json:"sender" validate:"required"`
+}
+
+func (s Server) EPInvoiceList(c *fiber.Ctx) error {
+	// Get query params
+	listOpts := models.ListInvoicesOpts{}
+
+	if idsQuery, ok := c.Queries()["ids"]; ok {
+		// Parse as string delimited array
+		parts := strings.Split(idsQuery, ",")
+
+		for _, idStr := range parts {
+			idInt, err := strconv.ParseUint(idStr, 10, 32)
+			if err != nil {
+				return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("failed to parse 'ids' query parameter '%s': %s", idStr, err))
+			}
+			listOpts.IDs = append(listOpts.IDs, idInt)
+		}
+	}
+
+	// Perform list
+	invoices, err := s.repos.Invoice.List(listOpts)
+	if err != nil {
+		return fmt.Errorf("failed to list invoices: %s", err)
+	}
+
+	if len(invoices) == 0 {
+		idsStr := []string{}
+		for _, id := range listOpts.IDs {
+			idsStr = append(idsStr, fmt.Sprintf("%d", id))
+		}
+		return fiber.NewError(fiber.StatusNotFound, fmt.Sprintf("invoice(s) with ID %s not found", strings.Join(idsStr, ",")))
+	}
+
+	return c.JSON(invoices)
+}
+
+// EPInvoiceCreate makes a new invoice
+func (s Server) EPInvoiceCreate(c *fiber.Ctx) error {
+	// Parse body
+	var body EPInvoiceCreateReq
+	if err := s.parseBody(c, &body); err != nil {
+		return err
+	}
+
+	// Get invoice settings
+	invoiceSettings, err := s.repos.InvoiceSettings.Get()
+	if err != nil {
+		return fmt.Errorf("failed to get invoice settings: %s", err)
+	}
+
+	if invoiceSettings.ID != body.InvoiceSettingsID {
+		return fiber.NewError(fiber.StatusNotFound, fmt.Sprintf("could not find invoice settings with ID %d", body.InvoiceSettingsID))
+	}
+
+	// Get time entries
+	timeEntries, err := s.repos.TimeEntry.List(models.ListTimeEntriesOpts{
+		StartDate: &body.StartDate,
+		EndDate:   &body.EndDate,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to find time entries for invoice time period: %s", err)
+	}
+
+	// Create invoice
+	res, err := s.repos.Invoice.Create(models.CreateInvoiceOpts{
+		InvoiceSettings: *invoiceSettings,
+		StartDate:       body.StartDate,
+		EndDate:         body.EndDate,
+		TimeEntries:     timeEntries,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create invoice: %s", err)
+	}
+
+	return c.JSON(res)
+}
+
+// EPInvoiceCreateReq is the create invoice request body
+type EPInvoiceCreateReq struct {
+	// InvoiceSettingsID is the ID of the invoice settings to use
+	InvoiceSettingsID uint `json:"invoice_settings_id"`
+
+	// StartDate of period of performance for invoice
+	StartDate time.Time `json:"start_date"`
+
+	// EndDate of period of performance for invoice
+	EndDate time.Time `json:"end_date"`
 }

@@ -107,7 +107,7 @@ export const api = {
       readonly endDate: Date | null
     }) =>
       makeReq({
-        path: "time-entries",
+        path: "time-entries/",
         method: "GET",
         shape: listTimeEntriesSchema,
         queryParams: {
@@ -121,7 +121,7 @@ export const api = {
     }: {
       readonly csvFiles: CSVFile[]
     }) => makeReq({
-      path: "time-entries/upload-csv",
+      path: "time-entries/upload-csv/",
       method: "POST",
       shape: timeEntriesUploadCSVSchema,
       body: {
@@ -132,7 +132,7 @@ export const api = {
 
   invoiceSettings: {
     get: () => makeReq({
-      path: "invoice-settings",
+      path: "invoice-settings/",
       method: "GET",
       shape: invoiceSettingsSchema,
     }),
@@ -146,7 +146,7 @@ export const api = {
       readonly recipient: string
       readonly sender: string
     }) => makeReq({
-      path: "invoice-settings",
+      path: "invoice-settings/",
       method: "PUT",
       shape: invoiceSettingsSchema,
       body: {

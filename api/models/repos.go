@@ -15,6 +15,9 @@ type Repos struct {
 
 	// CSVImport repository
 	CSVImport CSVImportRepo
+
+	// Invoice repository
+	Invoice InvoiceRepo
 }
 
 // NewReposOpts are options to create a new repos
@@ -40,6 +43,10 @@ func NewRepos(opts NewReposOpts) Repos {
 		CSVImport: DBCSVImportRepo{
 			db:     opts.DB,
 			logger: opts.Logger.With(zap.String("repo", "DBCSVImportRepo")),
+		},
+		Invoice: DBInvoiceRepo{
+			db:     opts.DB,
+			logger: opts.Logger.With(zap.String("repo", "DBInvoiceRepo")),
 		},
 	}
 }
