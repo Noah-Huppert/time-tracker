@@ -49,15 +49,8 @@ func main() {
 	// Start server
 	server := server.NewServer(server.NewServerOpts{
 		Logger: logger.With(zap.String("component", "api")),
-		TimeEntryRepo: models.NewCSVTimeEntryParser(models.NewCSVTimeEntryParserOpts{
-			InDir:           "./data/times",
-			Timezone:        "EST",
-			ColumnStartTime: "time started",
-			ColumnEndTime:   "time ended",
-			ColumnComment:   "comment",
-		}),
-		InvoiceSettingsRepo: models.NewJSONInvoiceSettingsRepo(models.NewJSONInvoiceSettingsRepoOpts{
-			FilePath: "./data/invoice-settings.json",
+		Repos: models.NewRepos(models.NewReposOpts{
+			DB: db,
 		}),
 	})
 

@@ -28,5 +28,13 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
     restart: always
+
+  postgres_migrations_dev:
+    image: postgres:15.3-bullseye
+    environment:
+      - POSTGRES_USER=migrationsdev
+      - POSTGRES_PASSWORD=migrationsdev
+      - POSTGRES_DB=migrationsdev
+    restart: always
 volumes:
   pg_data: {}

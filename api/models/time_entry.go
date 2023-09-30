@@ -6,7 +6,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/mitchellh/hashstructure/v2"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -16,9 +15,6 @@ type TimeEntry struct {
 	// ID is the unique identifier
 	ID uint `gorm:"primarykey" json:"id"`
 
-	// Hash of fields which define the main component of a time entry, see TimeEntry.IdentityFields()
-	Hash string `gorm:"not null" json:"hash"`
-
 	/// StartTime is the date and time when the period started
 	StartTime time.Time `gorm:"not null" json:"start_time"`
 
@@ -27,25 +23,6 @@ type TimeEntry struct {
 
 	// Command is an optional comment explaining what work was completed during the period
 	Comment string `gorm:"not null" json:"comment"`
-}
-
-// IdentityFields returns a map of the StartTime, EndTime, and Comment fields. These fields define what makes a time entry unique.
-func (e TimeEntry) IdentityFields() map[string]interface{} {
-	return map[string]interface{}{
-		"StartTime": e.StartTime,
-		"EndTime":   e.EndTime,
-		"Comment":   e.Comment,
-	}
-}
-
-// ComputeIdentityHash returns a checksum of the TimeEntry.IdentityFields(), can be used to find duplicate TimeEntry structs
-func (e TimeEntry) ComputeIdentityHash() (string, error) {
-	hash, err := hashstructure.Hash(e.IdentityFields(), hashstructure.FormatV2, nil)
-	if err != nil {
-		return "", fmt.Errorf("failed to hash identity fields: %s", err)
-	}
-
-	return fmt.Sprintf("%d", hash), nil
 }
 
 // Duration of the time entry
@@ -58,7 +35,7 @@ type TimeEntryRepo interface {
 	// List time entries sorted earliest to latest
 	List(opts ListTimeEntriesOpts) ([]TimeEntry, error)
 
-	// Create time entries
+	// Create time entries, should not insert duplicate time entries (duplicate meaning all fields except ID are the same)
 	Create(timeEntries []TimeEntry) ([]TimeEntry, error)
 }
 
@@ -101,14 +78,17 @@ func (r DBTimeEntryRepo) List(opts ListTimeEntriesOpts) ([]TimeEntry, error) {
 }
 
 func (r DBTimeEntryRepo) Create(timeEntries []TimeEntry) ([]TimeEntry, error) {
-	r.db.Clauses(clause.OnConflict{
+	res := r.db.Clauses(clause.OnConflict{
 		Columns: []clause.Column{
 			{Name: "hash"},
 		},
-		DoUpdates: clause.AssignmentColumns({
-			""
-		}),
-	})
+		DoNothing: true,
+	}).Create(&timeEntries)
+	if res.Error != nil {
+		return nil, fmt.Errorf("failed to run batch insert query: %s", res.Error)
+	}
+
+	return timeEntries, nil
 }
 
 // CSVTimeEntryParser reads a CSV file's contents and creates time entries
@@ -154,35 +134,8 @@ func NewCSVTimeEntryParser(opts NewCSVTimeEntryParserOpts) CSVTimeEntryParser {
 	}
 }
 
-// DateCompare only compares the date (year, month, day) component of a time. Returns less than 0 if compare is before base, greater than 0 if compare is after base, 0 if the same.
-func DateCompare(base time.Time, compare time.Time) int32 {
-	// Year
-	if compare.Year() > base.Year() {
-		return 1
-	} else if compare.Year() < base.Year() {
-		return -1
-	}
-
-	// Month
-	if compare.Month() > base.Month() {
-		return 1
-	} else if compare.Month() < base.Month() {
-		return -1
-	}
-
-	// Day
-	if compare.Day() > base.Day() {
-		return 1
-	} else if compare.Day() < base.Day() {
-		return -1
-	}
-
-	return 0
-}
-
+// Parse CSV file contents into time entries, does not perform de-duplication
 func (r CSVTimeEntryParser) Parse(csvIn io.Reader) ([]TimeEntry, error) {
-	timeEntries := make(map[string]TimeEntry) // keys are hashes of the values
-
 	csvReader := csv.NewReader(csvIn)
 
 	// Read headers
@@ -212,6 +165,7 @@ func (r CSVTimeEntryParser) Parse(csvIn io.Reader) ([]TimeEntry, error) {
 		return nil, fmt.Errorf("failed to read rows of CSV: %s", err)
 	}
 
+	timeEntries := []TimeEntry{}
 	for rowI, row := range rows {
 		// Parse date times
 		startTimeStr := fmt.Sprintf("%s %s", row[headerMap[r.columnStartTime]], r.timezone)
@@ -264,22 +218,9 @@ func (r CSVTimeEntryParser) Parse(csvIn io.Reader) ([]TimeEntry, error) {
 
 		// Save entry(s)
 		for _, entry := range entries {
-			entryHash, err := entry.ComputeIdentityHash()
-			if err != nil {
-				return nil, fmt.Errorf("failed to hash time entry: %s", err)
-			}
-
-			entry.Hash = entryHash
-			timeEntries[entryHash] = entry
+			timeEntries = append(timeEntries, entry)
 		}
 	}
 
-	// Convert map into list
-	timeEntriesList := []TimeEntry{}
-
-	for _, timeEntry := range timeEntries {
-		timeEntriesList = append(timeEntriesList, timeEntry)
-	}
-
-	return timeEntriesList, nil
+	return timeEntries, nil
 }

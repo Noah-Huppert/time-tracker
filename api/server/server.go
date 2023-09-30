@@ -22,11 +22,8 @@ type Server struct {
 	// validate is a validator instance
 	validate *validator.Validate
 
-	// timeEntryRepo is the time entry repository
-	timeEntryRepo models.TimeEntryRepo
-
-	// invoiceSettingsRepo is the invoice settings repository
-	invoiceSettingsRepo models.InvoiceSettingsRepo
+	// repos are model repositories
+	repos models.Repos
 }
 
 // NewServerOpts are options to create a new server
@@ -34,20 +31,16 @@ type NewServerOpts struct {
 	// Logger for server
 	Logger *zap.Logger
 
-	// TimeEntryRepo is the time entry repository
-	TimeEntryRepo models.TimeEntryRepo
-
-	// InvoiceSettingsRepo is the invoice settings model repository
-	InvoiceSettingsRepo models.InvoiceSettingsRepo
+	// Repos are model repositories
+	Repos models.Repos
 }
 
 // NewServer creates a new Server
 func NewServer(opts NewServerOpts) Server {
 	return Server{
-		logger:              opts.Logger,
-		validate:            validator.New(),
-		timeEntryRepo:       opts.TimeEntryRepo,
-		invoiceSettingsRepo: opts.InvoiceSettingsRepo,
+		logger:   opts.Logger,
+		validate: validator.New(),
+		repos:    opts.Repos,
 	}
 }
 
@@ -174,7 +167,7 @@ func (s Server) EPTimeEntriesList(c *fiber.Ctx) error {
 	}
 
 	// Get time entries
-	timeEntries, err := s.timeEntryRepo.List(listOpts)
+	timeEntries, err := s.repos.TimeEntry.List(listOpts)
 	if err != nil {
 		return fmt.Errorf("failed to list time entries: %s", err)
 	}
@@ -183,18 +176,12 @@ func (s Server) EPTimeEntriesList(c *fiber.Ctx) error {
 	listItems := []TimeEntryListItem{}
 	var totalDuration time.Duration
 
-	for timeEntryI, timeEntry := range timeEntries {
-		hash, err := timeEntry.Hash()
-		if err != nil {
-			return fmt.Errorf("failed to hash time entry %d: %s", timeEntryI, err)
-		}
-
+	for _, timeEntry := range timeEntries {
 		duration := timeEntry.Duration()
 		totalDuration += duration
 
 		listItems = append(listItems, TimeEntryListItem{
 			TimeEntry: timeEntry,
-			Hash:      hash,
 			Duration:  duration,
 		})
 	}
@@ -218,16 +205,13 @@ type EPTimeEntriesListResp struct {
 type TimeEntryListItem struct {
 	models.TimeEntry
 
-	// Hash of the time entry, based on its content
-	Hash string `json:"hash"`
-
 	// Duration of the time entry
 	Duration time.Duration `json:"duration"`
 }
 
 // EPInvoiceSettingsGet gets invoice settings
 func (s Server) EPInvoiceSettingsGet(c *fiber.Ctx) error {
-	settings, err := s.invoiceSettingsRepo.Get()
+	settings, err := s.repos.InvoiceSettings.Get()
 	if err != nil {
 		return fmt.Errorf("failed to get invoice settings: %s", err)
 	}
@@ -249,7 +233,7 @@ func (s Server) EPInvoiceSettingsSet(c *fiber.Ctx) error {
 		Recipient:  body.Recipient,
 		Sender:     body.Sender,
 	}
-	if err := s.invoiceSettingsRepo.Set(newSettings); err != nil {
+	if err := s.repos.InvoiceSettings.Set(&newSettings); err != nil {
 		return fmt.Errorf("failed to set invoice settings: %s", err)
 	}
 

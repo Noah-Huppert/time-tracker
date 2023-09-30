@@ -6,7 +6,8 @@ ARG CONTAINER_USER_NAME=api
 RUN adduser -D -u ${CONTAINER_USER_ID} ${CONTAINER_USER_NAME}
 
 # Install packages
-RUN apk update && apk add bash
+RUN apk update && apk add bash curl postgresql-client
+RUN curl -sSf https://atlasgo.sh | sh
 
 # Create working directory
 RUN mkdir -p /opt/time-tracker/api/
