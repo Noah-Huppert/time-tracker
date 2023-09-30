@@ -23,6 +23,11 @@ const invoiceSettingsSchema = z.object({
 });
 export type InvoiceSettingsSchemaType = z.infer<typeof invoiceSettingsSchema>;
 
+export type CSVFile = {
+  readonly name: string
+  readonly content: string
+};
+
 const BASE_URL = "http://localhost:4000/api/v0/";
 
 async function makeReq<T>({
@@ -99,6 +104,19 @@ export const api = {
           "end_date": endDate?.toISOString(),
         }
       }),
+
+    uploadCSV: ({
+      csvFiles,
+    }: {
+      readonly csvFiles: CSVFile[]
+    }) => makeReq({
+      path: "time-entries/upload-csv",
+      method: "POST",
+      shape: z.array(timeEntrySchema),
+      body: {
+        csv_files: csvFiles,
+      }
+    })
   },
 
   invoiceSettings: {

@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Noah-Huppert/gointerrupt"
@@ -61,6 +62,7 @@ func (s Server) Listen(ctxPair gointerrupt.CtxPair, addr string) error {
 	app.Get("/api/v0/health", s.EPHealth)
 
 	app.Get("/api/v0/time-entries", s.EPTimeEntriesList)
+	app.Post("/api/v0/time-entries/upload-csv", s.EPTimeEntriesUploadCSV)
 
 	app.Get("/api/v0/invoice-settings", s.EPInvoiceSettingsGet)
 	app.Put("/api/v0/invoice-settings", s.EPInvoiceSettingsSet)
@@ -190,6 +192,56 @@ func (s Server) EPTimeEntriesList(c *fiber.Ctx) error {
 		TimeEntries:   listItems,
 		TotalDuration: totalDuration,
 	})
+}
+
+// EPTimeEntriesUploadCSV creates new time entries via CSV
+func (s Server) EPTimeEntriesUploadCSV(c *fiber.Ctx) error {
+	// Parse body
+	var body EPTimeEntriesUploadCSVReq
+	if err := s.parseBody(c, &body); err != nil {
+		return err
+	}
+
+	// Parse entries from each file
+	csvParser := models.NewCSVTimeEntryParser(models.NewCSVTimeEntryParserOpts{
+		Timezone:        "EST",
+		ColumnStartTime: "time started",
+		ColumnEndTime:   "time ended",
+		ColumnComment:   "comment",
+	})
+	entries := []models.TimeEntry{}
+
+	for _, file := range body.CSVFiles {
+		s.logger.Debug("time entry CSV", zap.String("name", file.Name), zap.String("content", file.Content))
+		parsedEntries, err := csvParser.Parse(strings.NewReader(file.Content))
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("failed to parse '%s': %s", file.Name, err))
+		}
+
+		entries = append(entries, parsedEntries...)
+	}
+
+	// Add new entries into db
+	insertedEntries, err := s.repos.TimeEntry.Create(entries)
+	if err != nil {
+		return fmt.Errorf("failed to insert entries: %s", err)
+	}
+
+	return c.JSON(insertedEntries)
+}
+
+// EPTimeEntriesUploadCSVReq is the upload time entries CSV request
+type EPTimeEntriesUploadCSVReq struct {
+	CSVFiles []EPTimeEntriesUploadCSVReqFile `json:"csv_files"`
+}
+
+// EPTimeEntriesUploadCSVReqFile is a file in an upload request
+type EPTimeEntriesUploadCSVReqFile struct {
+	// Name of file
+	Name string `json:"name"`
+
+	// Content of file
+	Content string `json:"content"`
 }
 
 // EPTimeEntriesListResp is the list time entries endpoint response

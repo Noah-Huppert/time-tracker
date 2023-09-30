@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { api, InvoiceSettingsSchemaType, ListTimeEntriesSchemaType, TimeEntrySchemaType } from "../../lib/api";
+import { useCallback, useContext, useEffect, useState } from "react";
+import { api, InvoiceSettingsSchemaType, ListTimeEntriesSchemaType, TimeEntrySchemaType, CSVFile } from "../../lib/api";
 import {
   Box,
   Button,
@@ -22,6 +22,8 @@ import { useNavigate } from "react-router-dom";
 import { ROUTES } from "../../lib/routes";
 import { Header } from "../../components/Header/Header";
 import { nanosecondsToDuration } from "../../lib/time";
+import { ReadFile, ReadFiles, UploadFile } from "../../components/UploadFile/UploadFile";
+import { ToastCtx } from "../../components/Toast/Toast";
 
 dayjs.extend(dayjsDuration);
 
@@ -29,12 +31,15 @@ type WebDataTimeEntriesList = ListTimeEntriesSchemaType | "loading" | "error"
 
 export const PageTimeEntries = () => {
   const navigate = useNavigate();
+  const toast = useContext(ToastCtx);
 
   const [filterStartDate, setFilterStartDate] = useState<Date | null>(null);
   const [filterEndDate, setFilterEndDate] = useState<Date | null>(null);
   const [timeEntries, setTimeEntries] = useState<WebDataTimeEntriesList>("loading");
 
   const fetchTimeEntries = useCallback(async () => {
+    setTimeEntries("loading");
+
     const res = await api.timeEntries.list({
       startDate: filterStartDate,
       endDate: filterEndDate,
@@ -62,6 +67,42 @@ export const PageTimeEntries = () => {
       endDate: qpEndDate,
     }));
   }, [filterStartDate, filterEndDate]);
+
+  const onUploadTimeSheets = useCallback(async (fileList: FileList) => {
+    // Get file content
+    const readFiles: ReadFile[] = [];
+    
+    try {
+      readFiles.push(...await ReadFiles(fileList));
+    } catch (e) {
+      console.error(`Failed to read time entry CSV files: ${e}`);
+      toast({
+        kind: "error",
+        message: "Failed to read time entry CSV files",
+      });
+      return;
+    }
+
+    // Make request
+    const res = await api.timeEntries.uploadCSV({
+      csvFiles: readFiles,
+    });
+    if (isLeft(res)) {
+      console.error(`Failed to upload time entries CSV: ${res.left}`);
+      toast({
+        kind: "error",
+        message: "Failed to upload time entry CSV files",
+      });
+      return;
+    }
+
+    toast({
+      kind: "success",
+      message: "Successfully uploaded time entry CSV files",
+    });
+
+    await fetchTimeEntries();
+  }, []);
 
   useEffect(() => {
     fetchTimeEntries();
@@ -94,6 +135,7 @@ export const PageTimeEntries = () => {
 
           <PageTimeActions
             onCreateInvoice={onCreateInvoice}
+            onUploadTimeSheets={onUploadTimeSheets}
           />
         </Box>
 
@@ -250,8 +292,10 @@ const PageTimeInformationContent = ({
 
 const PageTimeActions = ({
   onCreateInvoice,
+  onUploadTimeSheets,
 }: {
   readonly onCreateInvoice: () => void
+  readonly onUploadTimeSheets: (fileList: FileList) => void
 }) => {
   return (
     <Box
@@ -277,6 +321,11 @@ const PageTimeActions = ({
         >
           Create Invoice
         </Button>
+
+        <UploadFile
+          onUpload={onUploadTimeSheets}
+          uploadLabel="Upload Time Sheets"
+        />
       </Box>
     </Box>
   );
