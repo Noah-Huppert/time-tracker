@@ -22,32 +22,26 @@ export const PageHome = () => {
       </Box>
     </>
   );
-}
+};
 
 const RoutePaper = ({
   name,
   description,
   to,
 }: {
-  readonly name: string
-  readonly description: string
-  readonly to: string
+  readonly name: string;
+  readonly description: string;
+  readonly to: string;
 }) => {
   return (
     <Link to={to}>
       <Card>
         <CardContent>
-          <Typography
-            variant="h6"
-          >
-            {name}
-          </Typography>
+          <Typography variant="h6">{name}</Typography>
 
-          <Typography>
-            {description}
-          </Typography>
+          <Typography>{description}</Typography>
         </CardContent>
       </Card>
     </Link>
   );
-}
+};

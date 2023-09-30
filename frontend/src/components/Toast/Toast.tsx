@@ -1,43 +1,48 @@
-import { Alert, Snackbar } from "@mui/material"
-import { ReactNode, createContext, useCallback, useState } from "react"
+import { Alert, Snackbar } from "@mui/material";
+import { ReactNode, createContext, useCallback, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-export type ToastOpts = {
-  readonly kind: "error"
-  readonly message: string
-} | {
-  readonly kind: "success"
-  readonly message: string
-}
-export const ToastCtx = createContext(() => {})
+export type ToastOpts =
+  | {
+      readonly kind: "error";
+      readonly message: string;
+    }
+  | {
+      readonly kind: "success";
+      readonly message: string;
+    };
+export const ToastCtx = createContext(() => {});
 type ToastItem = ToastOpts & {
-  readonly id: string
-}
+  readonly id: string;
+};
 
 export const ToastProvider = ({
   children,
 }: {
-  readonly children: ReactNode
+  readonly children: ReactNode;
 }) => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
-  const addToast = useCallback((opts: ToastOpts) => {
-    setToasts((toasts) => [
-      ...toasts,
-      {
-        ...opts,
-        id: uuidv4(),
-      },
-    ]);
-  }, [setToasts])
+  const addToast = useCallback(
+    (opts: ToastOpts) => {
+      setToasts((toasts) => [
+        ...toasts,
+        {
+          ...opts,
+          id: uuidv4(),
+        },
+      ]);
+    },
+    [setToasts],
+  );
 
   const makeOnClose = (toast: ToastItem) => {
     return () => {
       setToasts((toasts) => [
-        ...toasts.filter((innerToast) => innerToast.id !== toast.id)
+        ...toasts.filter((innerToast) => innerToast.id !== toast.id),
       ]);
     };
-  }
+  };
 
   return (
     <>
@@ -50,15 +55,12 @@ export const ToastProvider = ({
             autoHideDuration={6000}
             onClose={makeOnClose(toast)}
           >
-            <Alert
-              onClose={makeOnClose(toast)}
-              severity={toast.kind}
-            >
+            <Alert onClose={makeOnClose(toast)} severity={toast.kind}>
               {toast.message}
             </Alert>
           </Snackbar>
         ))}
       </ToastCtx.Provider>
     </>
-  )
-}
+  );
+};

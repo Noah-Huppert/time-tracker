@@ -1,44 +1,58 @@
-import { Box, Button, CircularProgress, Drawer, TextField, Typography } from "@mui/material"
-import { useCallback, useContext, useEffect, useState } from "react"
-import { InvoiceSettingsSchemaType, api } from "../../lib/api"
-import { isLeft } from "fp-ts/lib/Either"
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Drawer,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { useCallback, useContext, useEffect, useState } from "react";
+import { InvoiceSettingsSchemaType, api } from "../../lib/api";
+import { isLeft } from "fp-ts/lib/Either";
 import WarningIcon from "@mui/icons-material/Warning";
 import { ToastCtx } from "../Toast/Toast";
 
 import "./SettingsDrawer.css";
 
 type DraftInvoiceSettings = {
-  hourly_rate: string
-  recipient: string,
-  sender: string,
-}
+  hourly_rate: string;
+  recipient: string;
+  sender: string;
+};
 
-function draftInvoiceSettingsFromSchemaType(settings: InvoiceSettingsSchemaType): DraftInvoiceSettings {
+function draftInvoiceSettingsFromSchemaType(
+  settings: InvoiceSettingsSchemaType,
+): DraftInvoiceSettings {
   return {
     hourly_rate: settings.hourly_rate.toString(),
     recipient: settings.recipient,
     sender: settings.sender,
-  }
+  };
 }
 
-function schemaInvoiceSettingsFromDraftType(settings: DraftInvoiceSettings): Omit<InvoiceSettingsSchemaType, "id"> {
+function schemaInvoiceSettingsFromDraftType(
+  settings: DraftInvoiceSettings,
+): Omit<InvoiceSettingsSchemaType, "id"> {
   return {
     hourly_rate: parseFloat(settings.hourly_rate),
     recipient: settings.recipient,
     sender: settings.sender,
-  }
+  };
 }
 
 export const SettingsDrawer = ({
   open,
   setOpen,
 }: {
-  readonly open: boolean
-  readonly setOpen: (value: boolean) => void
+  readonly open: boolean;
+  readonly setOpen: (value: boolean) => void;
 }) => {
   const toast = useContext(ToastCtx);
-  const [invoiceSettings, setInvoiceSettings] = useState<DraftInvoiceSettings | "loading" | "error">("loading");
-  const [updateInvoiceSettingsLoading, setUpdateInvoiceSettingsLoading] = useState(false);
+  const [invoiceSettings, setInvoiceSettings] = useState<
+    DraftInvoiceSettings | "loading" | "error"
+  >("loading");
+  const [updateInvoiceSettingsLoading, setUpdateInvoiceSettingsLoading] =
+    useState(false);
 
   const fetchInvoiceSettings = useCallback(async () => {
     const res = await api.invoiceSettings.get();
@@ -49,13 +63,16 @@ export const SettingsDrawer = ({
     }
 
     setInvoiceSettings(draftInvoiceSettingsFromSchemaType(res.right));
-  }, [setInvoiceSettings])
+  }, [setInvoiceSettings]);
 
   useEffect(() => {
-    fetchInvoiceSettings()
+    fetchInvoiceSettings();
   }, [fetchInvoiceSettings]);
 
-  const updateInvoiceSettings = useCallback(function<K extends keyof DraftInvoiceSettings, V extends DraftInvoiceSettings[K]>(key: K, value: V) {
+  const updateInvoiceSettings = useCallback(function <
+    K extends keyof DraftInvoiceSettings,
+    V extends DraftInvoiceSettings[K],
+  >(key: K, value: V) {
     setInvoiceSettings((comp) => {
       if (comp === "loading" || comp === "error") {
         return comp;
@@ -66,7 +83,7 @@ export const SettingsDrawer = ({
         [key]: value,
       };
     });
-  }, [])
+  }, []);
 
   const sendInvoiceSettingsUpdate = useCallback(async () => {
     if (invoiceSettings === "loading" || invoiceSettings === "error") {
@@ -97,12 +114,14 @@ export const SettingsDrawer = ({
 
     // Check if no settings exist
     if (res.right === null) {
-      setInvoiceSettings(draftInvoiceSettingsFromSchemaType({
-        id: 0,
-        hourly_rate: 0,
-        recipient: "",
-        sender: "",
-      }));
+      setInvoiceSettings(
+        draftInvoiceSettingsFromSchemaType({
+          id: 0,
+          hourly_rate: 0,
+          recipient: "",
+          sender: "",
+        }),
+      );
       return;
     }
 
@@ -111,15 +130,16 @@ export const SettingsDrawer = ({
     toast({
       kind: "success",
       message: "Updated invoice settings",
-    })
-  }, [toast, invoiceSettings, setInvoiceSettings, setUpdateInvoiceSettingsLoading]);
+    });
+  }, [
+    toast,
+    invoiceSettings,
+    setInvoiceSettings,
+    setUpdateInvoiceSettingsLoading,
+  ]);
 
   return (
-    <Drawer
-      open={open}
-      onClose={() => setOpen(false)}
-      anchor="right"
-    >
+    <Drawer open={open} onClose={() => setOpen(false)} anchor="right">
       <Box
         sx={{
           padding: "1rem",
@@ -128,9 +148,7 @@ export const SettingsDrawer = ({
           minWidth: "30rem",
         }}
       >
-        <Typography variant="h5">
-          Settings
-        </Typography>
+        <Typography variant="h5">Settings</Typography>
 
         <Typography
           variant="h6"
@@ -164,9 +182,11 @@ export const SettingsDrawer = ({
                 <TextField
                   label="Hourly Rate"
                   value={invoiceSettings.hourly_rate}
-                  onChange={(e) => updateInvoiceSettings("hourly_rate", e.target.value)}
+                  onChange={(e) =>
+                    updateInvoiceSettings("hourly_rate", e.target.value)
+                  }
                   sx={{
-                    width: "100%"
+                    width: "100%",
                   }}
                 />
               </Box>
@@ -177,9 +197,11 @@ export const SettingsDrawer = ({
                   rows={3}
                   label="Recipient"
                   value={invoiceSettings.recipient}
-                  onChange={(e) => updateInvoiceSettings("recipient", e.target.value)}
+                  onChange={(e) =>
+                    updateInvoiceSettings("recipient", e.target.value)
+                  }
                   sx={{
-                    width: "100%"
+                    width: "100%",
                   }}
                 />
               </Box>
@@ -190,9 +212,11 @@ export const SettingsDrawer = ({
                   rows={3}
                   label="Sender"
                   value={invoiceSettings.sender}
-                  onChange={(e) => updateInvoiceSettings("sender", e.target.value)}
+                  onChange={(e) =>
+                    updateInvoiceSettings("sender", e.target.value)
+                  }
                   sx={{
-                    width: "100%"
+                    width: "100%",
                   }}
                 />
               </Box>
@@ -203,9 +227,7 @@ export const SettingsDrawer = ({
                 onClick={sendInvoiceSettingsUpdate}
                 variant="outlined"
               >
-                {updateInvoiceSettingsLoading && (
-                  <CircularProgress />
-                )}
+                {updateInvoiceSettingsLoading && <CircularProgress />}
                 Save
               </Button>
             </>
@@ -213,5 +235,5 @@ export const SettingsDrawer = ({
         </Box>
       </Box>
     </Drawer>
-  ) 
-}
+  );
+};

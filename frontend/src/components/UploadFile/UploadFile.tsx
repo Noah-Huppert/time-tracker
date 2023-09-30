@@ -5,21 +5,24 @@ export const UploadFile = ({
   onUpload,
   uploadLabel,
 }: {
-  readonly onUpload: (fileList: FileList) => void
-  readonly uploadLabel: string
+  readonly onUpload: (fileList: FileList) => void;
+  readonly uploadLabel: string;
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<FileList | null>(null);
 
   const [showingInput, setShowingInput] = useState(false);
 
-  const onChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files === null) {
-      return;
-    }
+  const onChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files === null) {
+        return;
+      }
 
-    setFiles(e.target.files)
-  }, [setFiles]);
+      setFiles(e.target.files);
+    },
+    [setFiles],
+  );
 
   const onUploadButtonClick = useCallback(() => {
     if (files === null) {
@@ -29,7 +32,7 @@ export const UploadFile = ({
     onUpload(files);
     onClearButtonClick();
     setShowingInput(false);
-  }, [files, onUpload, onClearButtonClick])
+  }, [files, onUpload, onClearButtonClick]);
 
   const onClearButtonClick = useCallback(() => {
     setShowingInput(false);
@@ -45,14 +48,11 @@ export const UploadFile = ({
   if (showingInput === false) {
     return (
       <Box>
-        <Button
-          variant="contained"
-          onClick={() => setShowingInput(true)}
-        >
+        <Button variant="contained" onClick={() => setShowingInput(true)}>
           {uploadLabel}
         </Button>
       </Box>
-    )
+    );
   }
 
   return (
@@ -82,10 +82,7 @@ export const UploadFile = ({
             marginTop: "1rem",
           }}
         >
-          <Button
-            variant="contained"
-            onClick={onClearButtonClick}
-          >
+          <Button variant="contained" onClick={onClearButtonClick}>
             Cancel
           </Button>
 
@@ -106,9 +103,9 @@ export const UploadFile = ({
 };
 
 export type ReadFile = {
-  readonly name: string
-  readonly content: string
-}
+  readonly name: string;
+  readonly content: string;
+};
 
 export async function ReadFiles(fileList: FileList): Promise<ReadFile[]> {
   // Ignore empty file list
@@ -117,36 +114,44 @@ export async function ReadFiles(fileList: FileList): Promise<ReadFile[]> {
   }
 
   // Read all files
-  const allFiles = []
+  const allFiles = [];
   for (const file of fileList) {
     allFiles.push(file);
   }
 
-  return await Promise.all(allFiles.map((file) => new Promise<ReadFile>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onabort = () => {
-      reject("aborted");
-    };
-    reader.onerror = (e) => {
-      reject(`error: ${e}`);
-    };
-    reader.onload = (e) => {
-      if (e.target === null) {
-        reject("loaded with null target");
-        return;
-      }
+  return await Promise.all(
+    allFiles.map(
+      (file) =>
+        new Promise<ReadFile>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onabort = () => {
+            reject("aborted");
+          };
+          reader.onerror = (e) => {
+            reject(`error: ${e}`);
+          };
+          reader.onload = (e) => {
+            if (e.target === null) {
+              reject("loaded with null target");
+              return;
+            }
 
-      if (typeof e.target.result !== "string") {
-        reject(`loaded with non-string data type of: ${typeof e.target.result}`);
-        return;
-      }
+            if (typeof e.target.result !== "string") {
+              reject(
+                `loaded with non-string data type of: ${typeof e.target
+                  .result}`,
+              );
+              return;
+            }
 
-      resolve({
-        name: file.name,
-        content: e.target.result,
-      });
-    };
+            resolve({
+              name: file.name,
+              content: e.target.result,
+            });
+          };
 
-    reader.readAsText(file);
-  })));
+          reader.readAsText(file);
+        }),
+    ),
+  );
 }

@@ -21,7 +21,7 @@ const timeEntriesUploadCSVListItemSchema = z.object({
   start_time: z.string(),
   end_time: z.string(),
   comment: z.string(),
-})
+});
 const timeEntriesUploadCSVSchema = z.object({
   existing_time_entries: z.array(timeEntriesUploadCSVListItemSchema),
   new_time_entries: z.array(timeEntriesUploadCSVListItemSchema),
@@ -40,7 +40,7 @@ const invoiceTimeEntrySchema = z.object({
   invoice_id: z.number(),
   time_entry_id: z.number(),
   time_entry: timeEntrySchema,
-})
+});
 export type InvoiceTimeEntrySchemaType = z.infer<typeof invoiceTimeEntrySchema>;
 
 const invoiceSchema = z.object({
@@ -58,8 +58,8 @@ const invoiceSchema = z.object({
 export type InvoiceSchemaType = z.infer<typeof invoiceSchema>;
 
 export type CSVFile = {
-  readonly name: string
-  readonly content: string
+  readonly name: string;
+  readonly content: string;
 };
 
 const BASE_URL = "http://localhost:4000/api/v0/";
@@ -74,15 +74,19 @@ async function makeReq<T>({
   readonly path: string;
   readonly method: string;
   readonly shape: z.Schema<T>;
-  readonly queryParams?: {[key: string]: string | undefined | null};
+  readonly queryParams?: { [key: string]: string | undefined | null };
   readonly body?: object;
 }): Promise<Either<Error, T>> {
   if (path[0] === "/") {
-    return left(new Error("path argument cannot start with leading slash, as this will clobber the base URL"));
+    return left(
+      new Error(
+        "path argument cannot start with leading slash, as this will clobber the base URL",
+      ),
+    );
   }
 
   // Make request
-  const setQueryParams: {[key: string]: string} = {}
+  const setQueryParams: { [key: string]: string } = {};
   if (queryParams !== undefined) {
     Object.entries(queryParams).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
@@ -91,12 +95,15 @@ async function makeReq<T>({
     });
   }
 
-  const headers: {[key: string]: string} = {};
+  const headers: { [key: string]: string } = {};
   if (body !== undefined) {
     headers["Content-Type"] = "application/json";
   }
 
-  const url = new URL(path, BASE_URL).href + "?" + new URLSearchParams(setQueryParams || {})
+  const url =
+    new URL(path, BASE_URL).href +
+    "?" +
+    new URLSearchParams(setQueryParams || {});
   const res = await fetch(url, {
     method,
     body: JSON.stringify(body),
@@ -126,91 +133,88 @@ export const api = {
       startDate,
       endDate,
     }: {
-      readonly startDate: Date | null
-      readonly endDate: Date | null
+      readonly startDate: Date | null;
+      readonly endDate: Date | null;
     }) =>
       makeReq({
         path: "time-entries/",
         method: "GET",
         shape: listTimeEntriesSchema,
         queryParams: {
-          "start_date": startDate?.toISOString(),
-          "end_date": endDate?.toISOString(),
-        }
+          start_date: startDate?.toISOString(),
+          end_date: endDate?.toISOString(),
+        },
       }),
 
-    uploadCSV: ({
-      csvFiles,
-    }: {
-      readonly csvFiles: CSVFile[]
-    }) => makeReq({
-      path: "time-entries/upload-csv/",
-      method: "POST",
-      shape: timeEntriesUploadCSVSchema,
-      body: {
-        csv_files: csvFiles,
-      }
-    })
+    uploadCSV: ({ csvFiles }: { readonly csvFiles: CSVFile[] }) =>
+      makeReq({
+        path: "time-entries/upload-csv/",
+        method: "POST",
+        shape: timeEntriesUploadCSVSchema,
+        body: {
+          csv_files: csvFiles,
+        },
+      }),
   },
 
   invoiceSettings: {
-    get: () => makeReq({
-      path: "invoice-settings/",
-      method: "GET",
-      shape: invoiceSettingsSchema,
-    }),
+    get: () =>
+      makeReq({
+        path: "invoice-settings/",
+        method: "GET",
+        shape: invoiceSettingsSchema,
+      }),
 
     set: ({
       hourlyRate,
       recipient,
       sender,
     }: {
-      readonly hourlyRate: number
-      readonly recipient: string
-      readonly sender: string
-    }) => makeReq({
-      path: "invoice-settings/",
-      method: "PUT",
-      shape: z.nullable(invoiceSettingsSchema),
-      body: {
-        hourly_rate: hourlyRate,
-        recipient,
-        sender,
-      }
-    })
+      readonly hourlyRate: number;
+      readonly recipient: string;
+      readonly sender: string;
+    }) =>
+      makeReq({
+        path: "invoice-settings/",
+        method: "PUT",
+        shape: z.nullable(invoiceSettingsSchema),
+        body: {
+          hourly_rate: hourlyRate,
+          recipient,
+          sender,
+        },
+      }),
   },
 
   invoices: {
-    list: ({
-      ids,
-    }: {
-      readonly ids?: number[]
-    }) => makeReq({
-      path: "invoices/",
-      method: "GET",
-      shape: z.array(invoiceSchema),
-      queryParams: {
-        ids: ids?.join(",") || undefined,
-      },
-    }),
+    list: ({ ids }: { readonly ids?: number[] }) =>
+      makeReq({
+        path: "invoices/",
+        method: "GET",
+        shape: z.array(invoiceSchema),
+        queryParams: {
+          ids: ids?.join(",") || undefined,
+        },
+      }),
 
     create: ({
       invoiceSettingsID,
       startDate,
       endDate,
     }: {
-      readonly invoiceSettingsID: number
-      readonly startDate: Date
-      readonly endDate: Date
-    }) => makeReq({
-      path: "invoices/",
-      method: "POST",
-      shape: invoiceSchema,
-      body: {
-        invoice_settings_id: invoiceSettingsID,
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
-      }
-    }),
-  }
+      readonly invoiceSettingsID: number;
+      readonly startDate: Date;
+      readonly endDate: Date;
+    }) =>
+      makeReq({
+        path: "invoices/",
+        method: "POST",
+        shape: invoiceSchema,
+        body: {
+          invoice_settings_id: invoiceSettingsID,
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+        },
+      }),
+  },
 };

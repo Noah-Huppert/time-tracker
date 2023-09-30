@@ -1,6 +1,26 @@
-import { Box, CircularProgress, TableContainer, Typography, TableHead, Table, TableCell, TableBody, TableRow, styled, tableCellClasses, Button, AppBar, Container, Toolbar } from "@mui/material";
+import {
+  Box,
+  CircularProgress,
+  TableContainer,
+  Typography,
+  TableHead,
+  Table,
+  TableCell,
+  TableBody,
+  TableRow,
+  styled,
+  tableCellClasses,
+  Button,
+  AppBar,
+  Container,
+  Toolbar,
+} from "@mui/material";
 import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
-import { InvoiceSchemaType, InvoiceTimeEntrySchemaType, api } from "../../lib/api";
+import {
+  InvoiceSchemaType,
+  InvoiceTimeEntrySchemaType,
+  api,
+} from "../../lib/api";
 import { isLeft } from "fp-ts/lib/Either";
 import WarningIcon from "@mui/icons-material/Warning";
 import { Link as RouterLink, useParams } from "react-router-dom";
@@ -9,8 +29,8 @@ import dayjs from "dayjs";
 import dayjsDuration from "dayjs/plugin/duration";
 import { nanosecondsToDuration } from "../../lib/time";
 import { useReactToPrint } from "react-to-print";
-import PrintIcon from '@mui/icons-material/Print';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import PrintIcon from "@mui/icons-material/Print";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 dayjs.extend(dayjsDuration);
 
@@ -30,18 +50,13 @@ const HeaderTableCell = styled(BorderedTableCell)(({ theme }) => ({
   },
 }));
 
-const TABLE_COL_WIDTHS = [
-  150,
-  150,
-  50,
-  300,
-]
+const TABLE_COL_WIDTHS = [150, 150, 50, 300];
 
 export const PageViewInvoice = () => {
   const ref = useRef(null);
   const onPrint = useReactToPrint({
     content: () => ref.current,
-  })
+  });
 
   return (
     <>
@@ -64,9 +79,7 @@ export const PageViewInvoice = () => {
               Back
             </Button>
 
-            <Typography variant="h5">
-              Invoice
-            </Typography>
+            <Typography variant="h5">Invoice</Typography>
 
             <Button
               startIcon={<PrintIcon />}
@@ -82,21 +95,21 @@ export const PageViewInvoice = () => {
 
       <Invoice ref={ref} />
     </>
-  )
-}
+  );
+};
 
 export const Invoice = forwardRef((props, ref) => {
-  const [invoice, setInvoice] = useState<InvoiceSchemaType | "loading" | "error">("loading");
+  const [invoice, setInvoice] = useState<
+    InvoiceSchemaType | "loading" | "error"
+  >("loading");
   const { id: invoiceID } = useParams();
 
   const fetchInvoice = useCallback(async (invoiceID: number) => {
     const res = await api.invoices.list({
-      ids: [
-        invoiceID,
-      ]
+      ids: [invoiceID],
     });
     if (isLeft(res)) {
-      setInvoice("error")
+      setInvoice("error");
       return;
     }
 
@@ -110,15 +123,13 @@ export const Invoice = forwardRef((props, ref) => {
     }
 
     fetchInvoice(Number(invoiceID));
-  }, [invoiceID, fetchInvoice])
+  }, [invoiceID, fetchInvoice]);
 
   if (invoice === "loading") {
     return (
       <>
         <CircularProgress size="medium" />
-        <Typography>
-          Loading
-        </Typography>
+        <Typography>Loading</Typography>
       </>
     );
   }
@@ -127,9 +138,7 @@ export const Invoice = forwardRef((props, ref) => {
     return (
       <>
         <WarningIcon />
-        <Typography>
-          Failed to load data
-        </Typography>
+        <Typography>Failed to load data</Typography>
       </>
     );
   }
@@ -174,13 +183,11 @@ export const Invoice = forwardRef((props, ref) => {
             marginTop: "2rem",
           }}
         >
-          <TimeEntriesTable
-            timeEntries={invoice.invoice_time_entries}
-          />
+          <TimeEntriesTable timeEntries={invoice.invoice_time_entries} />
         </Box>
       </Box>
     </Box>
-  )
+  );
 });
 
 const InvoiceHeader = ({
@@ -189,10 +196,10 @@ const InvoiceHeader = ({
   periodStart,
   periodEnd,
 }: {
-  readonly recipient: string
-  readonly sender: string
-  readonly periodStart: Date
-  readonly periodEnd: Date
+  readonly recipient: string;
+  readonly sender: string;
+  readonly periodStart: Date;
+  readonly periodEnd: Date;
 }) => {
   const splitRecipient = recipient.split("\n");
   const splitSender = sender.split("\n");
@@ -211,15 +218,11 @@ const InvoiceHeader = ({
           flexDirection: "column",
         }}
       >
-        <Typography>
-          Billed to:
-        </Typography>
+        <Typography>Billed to:</Typography>
 
         <Box>
           {splitRecipient.map((line, i) => (
-            <Typography key={`invoice-recipient-line-${i}`}>
-              {line}
-            </Typography>
+            <Typography key={`invoice-recipient-line-${i}`}>{line}</Typography>
           ))}
         </Box>
       </Box>
@@ -230,10 +233,8 @@ const InvoiceHeader = ({
           flexDirection: "column",
         }}
       >
-        <Typography>
-          Period of performance:
-        </Typography>
-        
+        <Typography>Period of performance:</Typography>
+
         <Box
           sx={{
             display: "flex",
@@ -247,9 +248,7 @@ const InvoiceHeader = ({
           >
             {dayjs(periodStart).format(DATE_FORMAT)}
           </Typography>
-          <Typography>
-            -
-          </Typography>
+          <Typography>-</Typography>
           <Typography
             sx={{
               paddingLeft: "0.5rem",
@@ -266,21 +265,17 @@ const InvoiceHeader = ({
           flexDirection: "column",
         }}
       >
-        <Typography>
-          From:
-        </Typography>
-        
+        <Typography>From:</Typography>
+
         <Box>
           {splitSender.map((line, i) => (
-            <Typography key={`invoice-sender-line-${i}`}>
-              {line}
-            </Typography>
+            <Typography key={`invoice-sender-line-${i}`}>{line}</Typography>
           ))}
         </Box>
       </Box>
     </Box>
-  )
-}
+  );
+};
 
 const SummaryTable = ({
   periodStart,
@@ -288,26 +283,33 @@ const SummaryTable = ({
   totalDuration,
   amountDue,
 }: {
-  readonly periodStart: Date
-  readonly periodEnd: Date
-  readonly totalDuration: number
-  readonly amountDue: number
+  readonly periodStart: Date;
+  readonly periodEnd: Date;
+  readonly totalDuration: number;
+  readonly amountDue: number;
 }) => {
   return (
     <>
       Owed:
-
       <TableContainer component={Box}>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <HeaderTableCell width={TABLE_COL_WIDTHS[0]}>Period Start</HeaderTableCell>
+              <HeaderTableCell width={TABLE_COL_WIDTHS[0]}>
+                Period Start
+              </HeaderTableCell>
 
-              <HeaderTableCell width={TABLE_COL_WIDTHS[1]}>Period End</HeaderTableCell>
+              <HeaderTableCell width={TABLE_COL_WIDTHS[1]}>
+                Period End
+              </HeaderTableCell>
 
-              <HeaderTableCell width={TABLE_COL_WIDTHS[2]}>Duration</HeaderTableCell>
+              <HeaderTableCell width={TABLE_COL_WIDTHS[2]}>
+                Duration
+              </HeaderTableCell>
 
-              <HeaderTableCell width={TABLE_COL_WIDTHS[3]}>Amount Due</HeaderTableCell>
+              <HeaderTableCell width={TABLE_COL_WIDTHS[3]}>
+                Amount Due
+              </HeaderTableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -324,38 +326,43 @@ const SummaryTable = ({
                 {nanosecondsToDuration(totalDuration).format(DURATION_FORMAT)}
               </BorderedTableCell>
 
-              <BorderedTableCell>
-                ${amountDue.toFixed(2)}
-              </BorderedTableCell>
+              <BorderedTableCell>${amountDue.toFixed(2)}</BorderedTableCell>
             </TableRow>
           </TableBody>
         </Table>
       </TableContainer>
     </>
-  )
-}
+  );
+};
 
 const TimeEntriesTable = ({
-  timeEntries
+  timeEntries,
 }: {
-  readonly timeEntries: InvoiceTimeEntrySchemaType[]
+  readonly timeEntries: InvoiceTimeEntrySchemaType[];
 }) => {
-  console.log(timeEntries[0].time_entry.duration)
+  console.log(timeEntries[0].time_entry.duration);
   return (
     <>
       Timesheet:
-
       <TableContainer component={Box}>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <HeaderTableCell width={TABLE_COL_WIDTHS[0]}>Time Started</HeaderTableCell>
+              <HeaderTableCell width={TABLE_COL_WIDTHS[0]}>
+                Time Started
+              </HeaderTableCell>
 
-              <HeaderTableCell width={TABLE_COL_WIDTHS[1]}>Time Ended</HeaderTableCell>
+              <HeaderTableCell width={TABLE_COL_WIDTHS[1]}>
+                Time Ended
+              </HeaderTableCell>
 
-              <HeaderTableCell width={TABLE_COL_WIDTHS[2]}>Duration</HeaderTableCell>
+              <HeaderTableCell width={TABLE_COL_WIDTHS[2]}>
+                Duration
+              </HeaderTableCell>
 
-              <HeaderTableCell width={TABLE_COL_WIDTHS[3]}>Comment</HeaderTableCell>
+              <HeaderTableCell width={TABLE_COL_WIDTHS[3]}>
+                Comment
+              </HeaderTableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -370,11 +377,15 @@ const TimeEntriesTable = ({
                 </BorderedTableCell>
 
                 <BorderedTableCell>
-                  {nanosecondsToDuration(timeEntry.time_entry.duration).format(DURATION_FORMAT)}
+                  {nanosecondsToDuration(timeEntry.time_entry.duration).format(
+                    DURATION_FORMAT,
+                  )}
                 </BorderedTableCell>
 
                 <BorderedTableCell>
-                  {timeEntry.time_entry.comment.length > 0 ? timeEntry.time_entry.comment : '\u00A0'}
+                  {timeEntry.time_entry.comment.length > 0
+                    ? timeEntry.time_entry.comment
+                    : "\u00A0"}
                 </BorderedTableCell>
               </TableRow>
             ))}
@@ -382,5 +393,5 @@ const TimeEntriesTable = ({
         </Table>
       </TableContainer>
     </>
-  )
-}
+  );
+};

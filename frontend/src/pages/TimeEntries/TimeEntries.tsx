@@ -1,5 +1,10 @@
 import { useCallback, useContext, useEffect, useState } from "react";
-import { api, InvoiceSettingsSchemaType, ListTimeEntriesSchemaType, TimeEntrySchemaType } from "../../lib/api";
+import {
+  api,
+  InvoiceSettingsSchemaType,
+  ListTimeEntriesSchemaType,
+  TimeEntrySchemaType,
+} from "../../lib/api";
 import {
   Box,
   Button,
@@ -22,12 +27,16 @@ import { useNavigate } from "react-router-dom";
 import { ROUTES } from "../../lib/routes";
 import { Header } from "../../components/Header/Header";
 import { nanosecondsToDuration } from "../../lib/time";
-import { ReadFile, ReadFiles, UploadFile } from "../../components/UploadFile/UploadFile";
+import {
+  ReadFile,
+  ReadFiles,
+  UploadFile,
+} from "../../components/UploadFile/UploadFile";
 import { ToastCtx } from "../../components/Toast/Toast";
 
 dayjs.extend(dayjsDuration);
 
-type WebDataTimeEntriesList = ListTimeEntriesSchemaType | "loading" | "error"
+type WebDataTimeEntriesList = ListTimeEntriesSchemaType | "loading" | "error";
 
 export const PageTimeEntries = () => {
   const navigate = useNavigate();
@@ -35,7 +44,8 @@ export const PageTimeEntries = () => {
 
   const [filterStartDate, setFilterStartDate] = useState<Date | null>(null);
   const [filterEndDate, setFilterEndDate] = useState<Date | null>(null);
-  const [timeEntries, setTimeEntries] = useState<WebDataTimeEntriesList>("loading");
+  const [timeEntries, setTimeEntries] =
+    useState<WebDataTimeEntriesList>("loading");
 
   const fetchTimeEntries = useCallback(async () => {
     setTimeEntries("loading");
@@ -76,7 +86,8 @@ export const PageTimeEntries = () => {
       console.error(`Failed to get invoice settings: ${invoiceSettings.left}`);
       toast({
         kind: "error",
-        message: "Failed to create invoice, problem while getting invoice settings",
+        message:
+          "Failed to create invoice, problem while getting invoice settings",
       });
       return;
     }
@@ -95,46 +106,51 @@ export const PageTimeEntries = () => {
       return;
     }
 
-    navigate(ROUTES.viewInvoice.make({
-      invoiceID: invoice.right.id,
-    }));
+    navigate(
+      ROUTES.viewInvoice.make({
+        invoiceID: invoice.right.id,
+      }),
+    );
   }, [filterStartDate, filterEndDate, navigate, toast]);
 
-  const onUploadTimeSheets = useCallback(async (fileList: FileList) => {
-    // Get file content
-    const readFiles: ReadFile[] = [];
-    
-    try {
-      readFiles.push(...await ReadFiles(fileList));
-    } catch (e) {
-      console.error(`Failed to read time entry CSV files: ${e}`);
-      toast({
-        kind: "error",
-        message: "Failed to read time entry CSV files",
+  const onUploadTimeSheets = useCallback(
+    async (fileList: FileList) => {
+      // Get file content
+      const readFiles: ReadFile[] = [];
+
+      try {
+        readFiles.push(...(await ReadFiles(fileList)));
+      } catch (e) {
+        console.error(`Failed to read time entry CSV files: ${e}`);
+        toast({
+          kind: "error",
+          message: "Failed to read time entry CSV files",
+        });
+        return;
+      }
+
+      // Make request
+      const res = await api.timeEntries.uploadCSV({
+        csvFiles: readFiles,
       });
-      return;
-    }
+      if (isLeft(res)) {
+        console.error(`Failed to upload time entries CSV: ${res.left}`);
+        toast({
+          kind: "error",
+          message: "Failed to upload time entry CSV files",
+        });
+        return;
+      }
 
-    // Make request
-    const res = await api.timeEntries.uploadCSV({
-      csvFiles: readFiles,
-    });
-    if (isLeft(res)) {
-      console.error(`Failed to upload time entries CSV: ${res.left}`);
       toast({
-        kind: "error",
-        message: "Failed to upload time entry CSV files",
+        kind: "success",
+        message: `Created ${res.right.new_time_entries.length} time entry(s) (${res.right.existing_time_entries.length} time entry(s) already existed)`,
       });
-      return;
-    }
 
-    toast({
-      kind: "success",
-      message: `Created ${res.right.new_time_entries.length} time entry(s) (${res.right.existing_time_entries.length} time entry(s) already existed)`,
-    });
-
-    await fetchTimeEntries();
-  }, [fetchTimeEntries, toast]);
+      await fetchTimeEntries();
+    },
+    [fetchTimeEntries, toast],
+  );
 
   useEffect(() => {
     fetchTimeEntries();
@@ -183,16 +199,14 @@ const PageTimeFilters = ({
   filterEndDate,
   setFilterEndDate,
 }: {
-  readonly filterStartDate: Date | null
-  readonly setFilterStartDate: (value: Date | null) => void
-  readonly filterEndDate: Date | null
-  readonly setFilterEndDate: (value: Date | null) => void
+  readonly filterStartDate: Date | null;
+  readonly setFilterStartDate: (value: Date | null) => void;
+  readonly filterEndDate: Date | null;
+  readonly setFilterEndDate: (value: Date | null) => void;
 }) => {
   return (
     <Box>
-      <Typography variant="h5">
-        Filters
-      </Typography>
+      <Typography variant="h5">Filters</Typography>
 
       <Box
         sx={{
@@ -225,13 +239,13 @@ const PageTimeFilters = ({
         </Box>
       </Box>
     </Box>
-  )
-}
+  );
+};
 
 const PageTimeInformation = ({
   timeEntries,
 }: {
-  readonly timeEntries: WebDataTimeEntriesList
+  readonly timeEntries: WebDataTimeEntriesList;
 }) => {
   return (
     <Box
@@ -240,21 +254,21 @@ const PageTimeInformation = ({
         flexDirection: "column",
       }}
     >
-      <Typography variant="h5">
-        Information
-      </Typography>
+      <Typography variant="h5">Information</Typography>
 
       <PageTimeInformationContent timeEntries={timeEntries} />
     </Box>
-  )
-}
+  );
+};
 
 const PageTimeInformationContent = ({
   timeEntries,
 }: {
-  readonly timeEntries: WebDataTimeEntriesList
+  readonly timeEntries: WebDataTimeEntriesList;
 }) => {
-  const [invoiceSettings, setInvoiceSettings] = useState<InvoiceSettingsSchemaType | "loading" | "error">("loading");
+  const [invoiceSettings, setInvoiceSettings] = useState<
+    InvoiceSettingsSchemaType | "loading" | "error"
+  >("loading");
 
   const fetchInvoiceSettings = useCallback(async () => {
     const res = await api.invoiceSettings.get();
@@ -268,15 +282,13 @@ const PageTimeInformationContent = ({
 
   useEffect(() => {
     fetchInvoiceSettings();
-  }, [fetchInvoiceSettings])
+  }, [fetchInvoiceSettings]);
 
-  if (timeEntries === "loading"  || invoiceSettings === "loading") {
+  if (timeEntries === "loading" || invoiceSettings === "loading") {
     return (
       <>
         <CircularProgress size="small" />
-        <Typography>
-          Loading
-        </Typography>
+        <Typography>Loading</Typography>
       </>
     );
   }
@@ -284,11 +296,9 @@ const PageTimeInformationContent = ({
   if (timeEntries === "error" || invoiceSettings === "error") {
     return (
       <>
-        <Typography>
-          Failed to load time entries
-        </Typography>
+        <Typography>Failed to load time entries</Typography>
       </>
-    )
+    );
   }
 
   const totalDuration = nanosecondsToDuration(timeEntries.total_duration);
@@ -314,7 +324,12 @@ const PageTimeInformationContent = ({
 
           <TableRow>
             <TableCell variant="head">Value</TableCell>
-            <TableCell>${(invoiceSettings.hourly_rate * totalDuration.asHours()).toFixed(2)}</TableCell>
+            <TableCell>
+              $
+              {(invoiceSettings.hourly_rate * totalDuration.asHours()).toFixed(
+                2,
+              )}
+            </TableCell>
           </TableRow>
         </TableBody>
       </Table>
@@ -326,8 +341,8 @@ const PageTimeActions = ({
   onCreateInvoice,
   onUploadTimeSheets,
 }: {
-  readonly onCreateInvoice: () => void
-  readonly onUploadTimeSheets: (fileList: FileList) => void
+  readonly onCreateInvoice: () => void;
+  readonly onUploadTimeSheets: (fileList: FileList) => void;
 }) => {
   return (
     <Box
@@ -336,9 +351,7 @@ const PageTimeActions = ({
         flexDirection: "column",
       }}
     >
-      <Typography variant="h5">
-        Actions
-      </Typography>
+      <Typography variant="h5">Actions</Typography>
       <Box
         sx={{
           display: "flex",
@@ -352,10 +365,7 @@ const PageTimeActions = ({
             display: "flex",
           }}
         >
-          <Button
-            variant="contained"
-            onClick={onCreateInvoice}
-          >
+          <Button variant="contained" onClick={onCreateInvoice}>
             Create Invoice
           </Button>
         </Box>
@@ -379,7 +389,7 @@ const PageTimeActions = ({
 const TimeEntriesTable = ({
   timeEntries,
 }: {
-  readonly timeEntries: WebDataTimeEntriesList
+  readonly timeEntries: WebDataTimeEntriesList;
 }) => {
   // If loading
   if (timeEntries === "loading") {
@@ -427,12 +437,12 @@ const TimeEntriesTable = ({
       </Table>
     </TableContainer>
   );
-}
+};
 
 const TimeEntryTableRow = ({
   timeEntry,
 }: {
-  readonly timeEntry: TimeEntrySchemaType
+  readonly timeEntry: TimeEntrySchemaType;
 }) => {
   const duration = nanosecondsToDuration(timeEntry.duration);
 
@@ -443,5 +453,5 @@ const TimeEntryTableRow = ({
       <TableCell>{duration.format("HH:mm:ss")}</TableCell>
       <TableCell>{timeEntry.comment}</TableCell>
     </TableRow>
-  )
-}
+  );
+};

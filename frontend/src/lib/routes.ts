@@ -16,17 +16,14 @@ export const ROUTES = {
 
   viewInvoice: {
     pattern: "/invoices/:id",
-    make: ({
-      invoiceID,
-    }: {
-      readonly invoiceID: number,
-    }) => `/invoices/${invoiceID}`,
-  }
+    make: ({ invoiceID }: { readonly invoiceID: number }) =>
+      `/invoices/${invoiceID}`,
+  },
 };
 
 export const QUERY_PARAMS = {
   invoice: {
     startDate: "start_date",
     endDate: "end_date",
-  }
-}
+  },
+};

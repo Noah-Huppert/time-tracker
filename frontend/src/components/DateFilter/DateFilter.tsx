@@ -1,6 +1,6 @@
 import { Button, Chip } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers";
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import { useState } from "react";
 import dayjs from "dayjs";
 
@@ -9,15 +9,15 @@ export const DateFilter = ({
   value,
   onChange,
 }: {
-  readonly label: string
-  readonly value: Date | null
-  readonly onChange: (date: Date | null) => void
+  readonly label: string;
+  readonly value: Date | null;
+  readonly onChange: (date: Date | null) => void;
 }) => {
   const [showingSelector, setShowingSelector] = useState(false);
 
   const onSetButtonClick = () => {
-    setShowingSelector(true)
-  }
+    setShowingSelector(true);
+  };
 
   if (value === null && showingSelector === false) {
     return (

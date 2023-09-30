@@ -3,28 +3,28 @@ import { PageTimeEntries } from "./pages/TimeEntries/TimeEntries";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
-import '@fontsource/roboto/300.css';
-import '@fontsource/roboto/400.css';
-import '@fontsource/roboto/500.css';
-import '@fontsource/roboto/700.css';
+import "@fontsource/roboto/300.css";
+import "@fontsource/roboto/400.css";
+import "@fontsource/roboto/500.css";
+import "@fontsource/roboto/700.css";
 import { createTheme, CssBaseline, ThemeProvider } from "@mui/material";
 import { ToastProvider } from "./components/Toast/Toast";
 import { ROUTES } from "./lib/routes";
 import { PageViewInvoice } from "./pages/ViewInvoice/ViewInvoice";
 import { PageHome } from "./pages/Home/Home";
 
-const theme = createTheme({      
+const theme = createTheme({
   typography: {
     button: {
-      textTransform: 'none'
-    }
-  }
+      textTransform: "none",
+    },
+  },
 });
 
 const router = createBrowserRouter([
   {
     path: ROUTES.home.pattern,
-    element: <PageHome />
+    element: <PageHome />,
   },
   {
     path: ROUTES.timeEntries.pattern,
@@ -32,7 +32,7 @@ const router = createBrowserRouter([
   },
   {
     path: ROUTES.viewInvoice.pattern,
-    element: <PageViewInvoice />
+    element: <PageViewInvoice />,
   },
 ]);
 

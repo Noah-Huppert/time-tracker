@@ -1,5 +1,12 @@
-import { AppBar, Box, Container, IconButton, Toolbar, Typography } from "@mui/material"
-import SettingsIcon from '@mui/icons-material/Settings';
+import {
+  AppBar,
+  Box,
+  Container,
+  IconButton,
+  Toolbar,
+  Typography,
+} from "@mui/material";
+import SettingsIcon from "@mui/icons-material/Settings";
 import { useState } from "react";
 import { SettingsDrawer } from "../SettingsDrawer/SettingsDrawer";
 import { Link } from "react-router-dom";
@@ -10,10 +17,7 @@ export const Header = () => {
 
   return (
     <>
-      <SettingsDrawer
-        open={settingsOpen}
-        setOpen={setSettingsOpen}
-      />
+      <SettingsDrawer open={settingsOpen} setOpen={setSettingsOpen} />
 
       <AppBar component="nav" position="static">
         <Container>
@@ -26,9 +30,7 @@ export const Header = () => {
                 alignItems: "center",
               }}
             >
-              <Typography variant="h6">
-                Time Tracker
-              </Typography>
+              <Typography variant="h6">Time Tracker</Typography>
 
               <Box
                 sx={{
@@ -37,25 +39,17 @@ export const Header = () => {
                   justifyContent: "space-around",
                   flexGrow: "0.1",
                   marginLeft: "1rem",
-                  "a": {
+                  a: {
                     color: "white",
                     textDecoration: "none",
                   },
                 }}
               >
-                <Link to={ROUTES.home.make()}>
-                  Home
-                </Link>
+                <Link to={ROUTES.home.make()}>Home</Link>
 
-                <Link to={ROUTES.timeEntries.make()}>
-                  Time Entries
-                </Link>
+                <Link to={ROUTES.timeEntries.make()}>Time Entries</Link>
 
-                <Link
-                  to={ROUTES.invoices.make()}
-                >
-                  Invoices
-                </Link>
+                <Link to={ROUTES.invoices.make()}>Invoices</Link>
               </Box>
             </Box>
 
@@ -66,5 +60,5 @@ export const Header = () => {
         </Container>
       </AppBar>
     </>
-  )
-}
+  );
+};
