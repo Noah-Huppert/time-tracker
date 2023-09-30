@@ -18,3 +18,15 @@ services:
     volumes:
       - ./:/opt/time-tracker/
     restart: always
+
+  postgres:
+    image: postgres:15.3-bullseye
+    environment:
+      - POSTGRES_USER=timetracker
+      - POSTGRES_PASSWORD=timetracker
+      - POSTGRES_DB=timetracker
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    restart: always
+volumes:
+  pg_data: {}

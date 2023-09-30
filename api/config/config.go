@@ -10,6 +10,9 @@ import (
 type Config struct {
 	// HTTPListen is the address on which to listen for HTTP traffic
 	HTTPListen string `default:":4000"`
+
+	// PostgresURI is the connection URI to the Postgres database
+	PostgresURI string `default:"postgres://timetracker:timetracker@postgres/timetracker?sslmode=disable"`
 }
 
 // NewConfig parses configuration from the environment

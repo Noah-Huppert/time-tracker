@@ -11,6 +11,8 @@ import (
 	"github.com/Noah-Huppert/time-tracker/api/models"
 	"github.com/Noah-Huppert/time-tracker/api/server"
 	"go.uber.org/zap"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -38,10 +40,16 @@ func main() {
 	}
 	logger.Debug("loaded configuration")
 
+	// Connect to database
+	db, err := gorm.Open(postgres.Open(cfg.PostgresURI))
+	if err != nil {
+		logger.Fatal("failed to connect to Postgres", zap.Error(err))
+	}
+
 	// Start server
 	server := server.NewServer(server.NewServerOpts{
 		Logger: logger.With(zap.String("component", "api")),
-		TimeEntryRepo: models.NewCSVTimeEntryRepo(models.NewCSVTimeEntryRepoOpts{
+		TimeEntryRepo: models.NewCSVTimeEntryParser(models.NewCSVTimeEntryParserOpts{
 			InDir:           "./data/times",
 			Timezone:        "EST",
 			ColumnStartTime: "time started",
