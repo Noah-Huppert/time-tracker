@@ -12,7 +12,7 @@ import (
 // InvoiceSettings records details about how the user is paid for their work
 type InvoiceSettings struct {
 	// ID is the unique identifier
-	ID uint `gorm:"primarykey" json:"-"`
+	ID uint `gorm:"primarykey" json:"id"`
 
 	// Slot is used to ensure that only one InvoiceSettings exists in the database
 	Slot string `gorm:"not null;unique" json:"-"`

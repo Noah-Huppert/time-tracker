@@ -28,11 +28,31 @@ const timeEntriesUploadCSVSchema = z.object({
 });
 
 const invoiceSettingsSchema = z.object({
+  id: z.number(),
   hourly_rate: z.number(),
   recipient: z.string(),
   sender: z.string(),
 });
 export type InvoiceSettingsSchemaType = z.infer<typeof invoiceSettingsSchema>;
+
+const invoiceTimeEntrySchema = z.object({
+  id: z.number(),
+  invoice_id: z.number(),
+  time_entry_id: z.number(),
+  time_entry: timeEntrySchema,
+})
+
+const invoiceSchema = z.object({
+  id: z.number(),
+  invoice_settings_id: z.number(),
+  start_date: z.string(),
+  end_date: z.string(),
+  sent_to_client: z.nullable(z.string()),
+  paid_by_client: z.nullable(z.string()),
+  invoice_settings: invoiceSettingsSchema,
+  invoice_time_entries: z.array(invoiceTimeEntrySchema),
+})
+export type InvoiceSchemaType = z.TypeOf<typeof invoiceSchema>;
 
 export type CSVFile = {
   readonly name: string
@@ -155,5 +175,39 @@ export const api = {
         sender,
       }
     })
+  },
+
+  invoices: {
+    list: ({
+      ids,
+    }: {
+      readonly ids?: number[]
+    }) => makeReq({
+      path: "invoices/",
+      method: "GET",
+      shape: z.array(invoiceSchema),
+      queryParams: {
+        ids: ids?.join(",") || undefined,
+      },
+    }),
+
+    create: ({
+      invoiceSettingsID,
+      startDate,
+      endDate,
+    }: {
+      readonly invoiceSettingsID: number
+      readonly startDate: Date
+      readonly endDate: Date
+    }) => makeReq({
+      path: "invoices/",
+      method: "POST",
+      shape: invoiceSchema,
+      body: {
+        invoice_settings_ids: invoiceSettingsID,
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+      }
+    }),
   }
 };
