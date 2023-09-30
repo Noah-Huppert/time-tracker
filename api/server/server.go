@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/contrib/fiberzap/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/lib/pq"
 	"go.uber.org/zap"
 )
 
@@ -210,7 +211,7 @@ func (s Server) EPTimeEntriesUploadCSV(c *fiber.Ctx) error {
 		ColumnComment:   "comment",
 	})
 
-	csvImports := []models.CSVImport{}
+	csvImports := []CSVImportItem{}
 	existingTimeEntries := []models.TimeEntry{}
 	newTimeEntries := []models.TimeEntry{}
 
@@ -223,19 +224,39 @@ func (s Server) EPTimeEntriesUploadCSV(c *fiber.Ctx) error {
 
 		// Create CSV import
 		csvImport := models.CSVImport{
-			FileName:     file.Name,
-			FileContents: file.Content,
+			FileName:              file.Name,
+			FileContents:          file.Content,
+			DuplicateTimeEntryIDs: pq.Int64Array{},
 		}
 		if err := s.repos.CSVImport.Create(&csvImport); err != nil {
 			return fmt.Errorf("failed to create CSV import for '%s' file: %s", file.Name, err)
 		}
-		csvImports = append(csvImports, csvImport)
 
 		// Add new entries into db
 		insertRes, err := s.repos.TimeEntry.Create(csvImport, parsedEntries)
 		if err != nil {
 			return fmt.Errorf("failed to insert entries: %s", err)
 		}
+
+		// Record duplicate IDs in csv import
+		for _, entry := range insertRes.ExistingEntries {
+			csvImport.DuplicateTimeEntryIDs = append(csvImport.DuplicateTimeEntryIDs, int64(entry.ID))
+		}
+		if err := s.repos.CSVImport.Update(&csvImport); err != nil {
+			return fmt.Errorf("failed to update CSV import with duplicate IDs: %s", err)
+		}
+
+		// Serialized data
+		serializedCSVImport := CSVImportItem{
+			ID:                    csvImport.ID,
+			FileName:              csvImport.FileName,
+			FileContents:          csvImport.FileContents,
+			DuplicateTimeEntryIDs: []int64{},
+		}
+		for _, id := range csvImport.DuplicateTimeEntryIDs {
+			serializedCSVImport.DuplicateTimeEntryIDs = append(serializedCSVImport.DuplicateTimeEntryIDs, int64(id))
+		}
+		csvImports = append(csvImports, serializedCSVImport)
 
 		existingTimeEntries = append(existingTimeEntries, insertRes.ExistingEntries...)
 		newTimeEntries = append(newTimeEntries, insertRes.NewEntries...)
@@ -271,7 +292,15 @@ type EPTimeEntriesUploadCSVResp struct {
 	NewTimeEntries []models.TimeEntry `json:"new_time_entries"`
 
 	// CSVImports are the CSV import records created during the import
-	CSVImports []models.CSVImport
+	CSVImports []CSVImportItem `json:"csv_imports"`
+}
+
+// CSVImportItem is a representation of CSVImport for serialization
+type CSVImportItem struct {
+	ID                    uint    `json:"id"`
+	FileName              string  `json:"file_name"`
+	FileContents          string  `json:"file_contents"`
+	DuplicateTimeEntryIDs []int64 `json:"duplicate_time_entry_ids"`
 }
 
 // EPTimeEntriesListResp is the list time entries endpoint response

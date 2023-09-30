@@ -14,6 +14,7 @@ CREATE TABLE "public"."csv_imports" (
   "id" bigserial NOT NULL,
   "file_name" text NOT NULL,
   "file_contents" text NOT NULL,
+  "duplicate_time_entry_ids" integer[] NOT NULL,
   PRIMARY KEY ("id")
 );
 -- Create "time_entries" table
@@ -24,7 +25,7 @@ CREATE TABLE "public"."time_entries" (
   "comment" text NOT NULL,
   "csv_import_id" bigint NOT NULL,
   PRIMARY KEY ("id"),
-  CONSTRAINT "fk_csv_imports_time_entries" FOREIGN KEY ("csv_import_id") REFERENCES "public"."csv_imports" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION
+  CONSTRAINT "fk_time_entries_csv_import" FOREIGN KEY ("csv_import_id") REFERENCES "public"."csv_imports" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 -- Create index "time_entry_identity_unique" to table: "time_entries"
 CREATE UNIQUE INDEX "time_entry_identity_unique" ON "public"."time_entries" ("start_time", "end_time", "comment");

@@ -43,6 +43,7 @@ require (
 	github.com/go-playground/validator/v10 v10.15.4
 	github.com/gofiber/contrib/fiberzap/v2 v2.1.1
 	github.com/gofiber/fiber/v2 v2.49.2
+	github.com/lib/pq v1.10.9
 	go.uber.org/multierr v1.10.0 // indirect
 	gorm.io/driver/postgres v1.5.2
 	gorm.io/gorm v1.25.4
