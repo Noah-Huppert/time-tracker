@@ -95,15 +95,15 @@ type DBTimeEntryRepo struct {
 func (r DBTimeEntryRepo) List(opts ListTimeEntriesOpts) ([]TimeEntry, error) {
 	// Base query
 	var timeEntries []TimeEntry
-	queryTx := r.db.Order("start_time DESC")
+	queryTx := r.db.Order("start_time ASC")
 
 	// Filter options
 	if opts.StartDate != nil {
-		queryTx.Where("start_time >= ?-?-?", opts.StartDate.Year(), opts.StartDate.Month(), opts.StartDate.Day())
+		queryTx.Or("start_time >= ?", time.Date(opts.StartDate.Year(), opts.StartDate.Month(), opts.StartDate.Day(), 0, 0, 0, 0, opts.StartDate.Location()))
 	}
 
 	if opts.EndDate != nil {
-		queryTx.Where("start_time <= ?-?-?", opts.EndDate.Year(), opts.EndDate.Month(), opts.EndDate.Day())
+		queryTx.Or("start_time <= ?", time.Date(opts.EndDate.Year(), opts.EndDate.Month(), opts.EndDate.Day(), 0, 0, 0, 0, opts.EndDate.Location()))
 	}
 
 	// Run query
