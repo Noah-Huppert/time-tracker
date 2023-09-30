@@ -16,9 +16,15 @@ const listTimeEntriesSchema = z.object({
 });
 export type ListTimeEntriesSchemaType = z.infer<typeof listTimeEntriesSchema>;
 
+const timeEntriesUploadCSVListItemSchema = z.object({
+  id: z.number(),
+  start_time: z.string(),
+  end_time: z.string(),
+  comment: z.string(),
+})
 const timeEntriesUploadCSVSchema = z.object({
-  existing_time_entries: z.array(timeEntrySchema),
-  new_time_entries: z.array(timeEntrySchema),
+  existing_time_entries: z.array(timeEntriesUploadCSVListItemSchema),
+  new_time_entries: z.array(timeEntriesUploadCSVListItemSchema),
 });
 
 const invoiceSettingsSchema = z.object({

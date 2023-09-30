@@ -50,6 +50,12 @@ func (e TimeEntry) ComputeIdentityHash() (string, error) {
 	return fmt.Sprintf("%d", hash), nil
 }
 
+// RoundTimesToDB takes all times in a TimeEntry and trims them to millisecond level resolution. This is because Golang supports nanosecond precision by Postgres only supports millisecond precision.
+func (e *TimeEntry) RoundTimesToDB() {
+	e.StartTime = e.StartTime.Round(time.Millisecond)
+	e.EndTime = e.EndTime.Round(time.Millisecond)
+}
+
 // TimeEntryRepo are functions to query and retrieve TimeEntries
 type TimeEntryRepo interface {
 	// List time entries sorted earliest to latest
@@ -110,6 +116,13 @@ func (r DBTimeEntryRepo) List(opts ListTimeEntriesOpts) ([]TimeEntry, error) {
 }
 
 func (r DBTimeEntryRepo) Create(timeEntries []TimeEntry) (*CreateTimeEntriesRes, error) {
+	// Ensure all times are rounded
+
+	for entryI, entry := range timeEntries {
+		entry.RoundTimesToDB()
+		timeEntries[entryI] = entry
+	}
+
 	// Find existing entries
 	var existingEntries []TimeEntry
 	existingEntriesWhereTuple := [][]interface{}{}
@@ -129,6 +142,8 @@ func (r DBTimeEntryRepo) Create(timeEntries []TimeEntry) (*CreateTimeEntriesRes,
 			return nil, fmt.Errorf("failed to compute identity hash of time entry with ID '%d': %s", entry.ID, err)
 		}
 
+		r.logger.Debug("existing time entry", zap.String("hash", hash))
+
 		existingEntriesHashes[hash] = nil
 	}
 
@@ -141,13 +156,16 @@ func (r DBTimeEntryRepo) Create(timeEntries []TimeEntry) (*CreateTimeEntriesRes,
 		}
 
 		if _, ok := existingEntriesHashes[hash]; !ok {
+			r.logger.Debug("arg time entry", zap.String("hash", hash))
 			toCreateEntries = append(toCreateEntries, entry)
 		}
 	}
 
-	res = r.db.Create(&toCreateEntries)
-	if res.Error != nil {
-		return nil, fmt.Errorf("failed to run batch insert query: %s", res.Error)
+	if len(toCreateEntries) > 0 {
+		res = r.db.Create(&toCreateEntries)
+		if res.Error != nil {
+			return nil, fmt.Errorf("failed to run batch insert query: %s", res.Error)
+		}
 	}
 
 	createRes := CreateTimeEntriesRes{
