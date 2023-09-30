@@ -12,6 +12,7 @@ import { createTheme, CssBaseline, ThemeProvider } from "@mui/material";
 import { ToastProvider } from "./components/Toast/Toast";
 import { ROUTES } from "./lib/routes";
 import { PageCreateInvoice } from "./pages/CreateInvoice/CreateInvoice";
+import { PageHome } from "./pages/Home/Home";
 
 const theme = createTheme({      
   typography: {
@@ -22,6 +23,10 @@ const theme = createTheme({
 });
 
 const router = createBrowserRouter([
+  {
+    path: ROUTES.home.pattern,
+    element: <PageHome />
+  },
   {
     path: ROUTES.time_entries.pattern,
     element: <PageTimeEntries />,

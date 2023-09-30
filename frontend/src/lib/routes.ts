@@ -1,7 +1,17 @@
 export const ROUTES = {
-  time_entries: {
+  home: {
     pattern: "/",
     make: () => "/",
+  },
+
+  time_entries: {
+    pattern: "/time-entries",
+    make: () => "/time-entries",
+  },
+
+  invoices: {
+    pattern: "/invoices",
+    make: () => "/invoices",
   },
 
   createInvoice: {
