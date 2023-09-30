@@ -6,9 +6,9 @@ import (
 	"io"
 	"time"
 
+	"github.com/mitchellh/hashstructure/v2"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 // TimeEntry records a period of time when work was completed
@@ -17,18 +17,37 @@ type TimeEntry struct {
 	ID uint `gorm:"primarykey" json:"id"`
 
 	/// StartTime is the date and time when the period started
-	StartTime time.Time `gorm:"not null" json:"start_time"`
+	StartTime time.Time `gorm:"not null;index:time_entry_identity_unique,unique" json:"start_time"`
 
 	// EndTime is the date and time when the period ended
-	EndTime time.Time `gorm:"not null" json:"end_time"`
+	EndTime time.Time `gorm:"not null;index:time_entry_identity_unique,unique" json:"end_time"`
 
 	// Command is an optional comment explaining what work was completed during the period
-	Comment string `gorm:"not null" json:"comment"`
+	Comment string `gorm:"not null;index:time_entry_identity_unique,unique" json:"comment"`
 }
 
 // Duration of the time entry
 func (e TimeEntry) Duration() time.Duration {
 	return e.EndTime.Sub(e.StartTime)
+}
+
+// IdentityFields returns a tuple of the StartTime, EndTime, and Comment fields. These fields define what makes a time entry unique.
+func (e TimeEntry) IdentityFields() []interface{} {
+	return []interface{}{
+		e.StartTime,
+		e.EndTime,
+		e.Comment,
+	}
+}
+
+// ComputeIdentityHash returns a checksum of the TimeEntry.IdentityFields(), can be used to find duplicate TimeEntry structs
+func (e TimeEntry) ComputeIdentityHash() (string, error) {
+	hash, err := hashstructure.Hash(e.IdentityFields(), hashstructure.FormatV2, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to hash identity fields: %s", err)
+	}
+
+	return fmt.Sprintf("%d", hash), nil
 }
 
 // TimeEntryRepo are functions to query and retrieve TimeEntries
@@ -37,7 +56,7 @@ type TimeEntryRepo interface {
 	List(opts ListTimeEntriesOpts) ([]TimeEntry, error)
 
 	// Create time entries, should not insert duplicate time entries (duplicate meaning all fields except ID are the same)
-	Create(timeEntries []TimeEntry) ([]TimeEntry, error)
+	Create(timeEntries []TimeEntry) (*CreateTimeEntriesRes, error)
 }
 
 // ListTimeEntriesOpts are options for listing time entries
@@ -47,6 +66,15 @@ type ListTimeEntriesOpts struct {
 
 	// EndDate indicates only time entries which started before (inclusive) this date should be returned
 	EndDate *time.Time
+}
+
+// CreateTimeEntriesRes is a create time entry result
+type CreateTimeEntriesRes struct {
+	// ExistingEntries are time entries which already existed in the database
+	ExistingEntries []TimeEntry
+
+	// NewEntries are time entries which didn't exist
+	NewEntries []TimeEntry
 }
 
 // DBTimeEntryRepo implements a TimeEntryRepo using a database
@@ -81,18 +109,53 @@ func (r DBTimeEntryRepo) List(opts ListTimeEntriesOpts) ([]TimeEntry, error) {
 	return timeEntries, nil
 }
 
-func (r DBTimeEntryRepo) Create(timeEntries []TimeEntry) ([]TimeEntry, error) {
-	res := r.db.Clauses(clause.OnConflict{
-		Columns: []clause.Column{
-			{Name: "hash"},
-		},
-		DoNothing: true,
-	}).Create(&timeEntries)
+func (r DBTimeEntryRepo) Create(timeEntries []TimeEntry) (*CreateTimeEntriesRes, error) {
+	// Find existing entries
+	var existingEntries []TimeEntry
+	existingEntriesWhereTuple := [][]interface{}{}
+	for _, entry := range timeEntries {
+		existingEntriesWhereTuple = append(existingEntriesWhereTuple, entry.IdentityFields())
+	}
+
+	res := r.db.Where("(start_time, end_time, comment) IN ?", existingEntriesWhereTuple).Find(&existingEntries)
+	if res.Error != nil {
+		return nil, fmt.Errorf("failed to find existing time entries: %s", res.Error)
+	}
+
+	existingEntriesHashes := map[string]interface{}{}
+	for _, entry := range existingEntries {
+		hash, err := entry.ComputeIdentityHash()
+		if err != nil {
+			return nil, fmt.Errorf("failed to compute identity hash of time entry with ID '%d': %s", entry.ID, err)
+		}
+
+		existingEntriesHashes[hash] = nil
+	}
+
+	// Find entries to create
+	toCreateEntries := []TimeEntry{}
+	for entryI, entry := range timeEntries {
+		hash, err := entry.ComputeIdentityHash()
+		if err != nil {
+			return nil, fmt.Errorf("failed to compute identity hash of time entry with index %d in timeEntries argument: %s", entryI, err)
+		}
+
+		if _, ok := existingEntriesHashes[hash]; !ok {
+			toCreateEntries = append(toCreateEntries, entry)
+		}
+	}
+
+	res = r.db.Create(&toCreateEntries)
 	if res.Error != nil {
 		return nil, fmt.Errorf("failed to run batch insert query: %s", res.Error)
 	}
 
-	return timeEntries, nil
+	createRes := CreateTimeEntriesRes{
+		ExistingEntries: existingEntries,
+		NewEntries:      toCreateEntries,
+	}
+
+	return &createRes, nil
 }
 
 // CSVTimeEntryParser reads a CSV file's contents and creates time entries

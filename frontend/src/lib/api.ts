@@ -2,10 +2,10 @@ import { z } from "zod";
 import { Either, left, right } from "fp-ts/lib/Either";
 
 const timeEntrySchema = z.object({
+  id: z.number(),
   start_time: z.string(),
   end_time: z.string(),
   comment: z.string(),
-  hash: z.string(),
   duration: z.number(),
 });
 export type TimeEntrySchemaType = z.infer<typeof timeEntrySchema>;
@@ -15,6 +15,11 @@ const listTimeEntriesSchema = z.object({
   total_duration: z.number(),
 });
 export type ListTimeEntriesSchemaType = z.infer<typeof listTimeEntriesSchema>;
+
+const timeEntriesUploadCSVSchema = z.object({
+  existing_time_entries: z.array(timeEntrySchema),
+  new_time_entries: z.array(timeEntrySchema),
+});
 
 const invoiceSettingsSchema = z.object({
   hourly_rate: z.number(),
@@ -112,7 +117,7 @@ export const api = {
     }) => makeReq({
       path: "time-entries/upload-csv",
       method: "POST",
-      shape: z.array(timeEntrySchema),
+      shape: timeEntriesUploadCSVSchema,
       body: {
         csv_files: csvFiles,
       }

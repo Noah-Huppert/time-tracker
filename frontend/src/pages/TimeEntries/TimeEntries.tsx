@@ -98,7 +98,7 @@ export const PageTimeEntries = () => {
 
     toast({
       kind: "success",
-      message: "Successfully uploaded time entry CSV files",
+      message: `Created ${res.right.new_time_entries.length} time entry(s) (${res.right.existing_time_entries.length} time entry(s) already existed)`,
     });
 
     await fetchTimeEntries();
@@ -374,7 +374,7 @@ const TimeEntriesTable = ({
         <TableBody>
           {timeEntries.time_entries.map((timeEntry) => (
             <TimeEntryTableRow
-              key={timeEntry.hash}
+              key={`time-entry-table-id-${timeEntry.id}`}
               timeEntry={timeEntry}
             />
           ))}

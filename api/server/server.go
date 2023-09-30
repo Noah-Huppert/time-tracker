@@ -212,7 +212,6 @@ func (s Server) EPTimeEntriesUploadCSV(c *fiber.Ctx) error {
 	entries := []models.TimeEntry{}
 
 	for _, file := range body.CSVFiles {
-		s.logger.Debug("time entry CSV", zap.String("name", file.Name), zap.String("content", file.Content))
 		parsedEntries, err := csvParser.Parse(strings.NewReader(file.Content))
 		if err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("failed to parse '%s': %s", file.Name, err))
@@ -222,12 +221,15 @@ func (s Server) EPTimeEntriesUploadCSV(c *fiber.Ctx) error {
 	}
 
 	// Add new entries into db
-	insertedEntries, err := s.repos.TimeEntry.Create(entries)
+	insertRes, err := s.repos.TimeEntry.Create(entries)
 	if err != nil {
 		return fmt.Errorf("failed to insert entries: %s", err)
 	}
 
-	return c.JSON(insertedEntries)
+	return c.JSON(EPTimeEntriesUploadCSVResp{
+		ExistingTimeEntries: insertRes.ExistingEntries,
+		NewTimeEntries:      insertRes.NewEntries,
+	})
 }
 
 // EPTimeEntriesUploadCSVReq is the upload time entries CSV request
@@ -242,6 +244,15 @@ type EPTimeEntriesUploadCSVReqFile struct {
 
 	// Content of file
 	Content string `json:"content"`
+}
+
+// EPTimeEntriesUploadCSVResp is the response for the upload time entries CSV endpoint
+type EPTimeEntriesUploadCSVResp struct {
+	// ExistingTimeEntries are time entries which already existed
+	ExistingTimeEntries []models.TimeEntry `json:"existing_time_entries"`
+
+	// NewTimeEntries are time entries which were newly created
+	NewTimeEntries []models.TimeEntry `json:"new_time_entries"`
 }
 
 // EPTimeEntriesListResp is the list time entries endpoint response

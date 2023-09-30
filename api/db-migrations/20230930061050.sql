@@ -17,3 +17,5 @@ CREATE TABLE "public"."time_entries" (
   "comment" text NOT NULL,
   PRIMARY KEY ("id")
 );
+-- Create index "time_entry_identity_unique" to table: "time_entries"
+CREATE UNIQUE INDEX "time_entry_identity_unique" ON "public"."time_entries" ("start_time", "end_time", "comment");
