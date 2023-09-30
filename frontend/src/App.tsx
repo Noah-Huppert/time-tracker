@@ -12,6 +12,7 @@ import { ToastProvider } from "./components/Toast/Toast";
 import { ROUTES } from "./lib/routes";
 import { PageViewInvoice } from "./pages/ViewInvoice/ViewInvoice";
 import { PageHome } from "./pages/Home/Home";
+import { PageInvoices } from "./pages/Invoices/Invoices";
 
 const theme = createTheme({
   typography: {
@@ -29,6 +30,10 @@ const router = createBrowserRouter([
   {
     path: ROUTES.timeEntries.pattern,
     element: <PageTimeEntries />,
+  },
+  {
+    path: ROUTES.invoices.pattern,
+    element: <PageInvoices />
   },
   {
     path: ROUTES.viewInvoice.pattern,

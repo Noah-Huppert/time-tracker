@@ -24,16 +24,6 @@ export const UploadFile = ({
     [setFiles],
   );
 
-  const onUploadButtonClick = useCallback(() => {
-    if (files === null) {
-      return;
-    }
-
-    onUpload(files);
-    onClearButtonClick();
-    setShowingInput(false);
-  }, [files, onUpload, onClearButtonClick]);
-
   const onClearButtonClick = useCallback(() => {
     setShowingInput(false);
 
@@ -44,6 +34,16 @@ export const UploadFile = ({
     fileInputRef.current.value = "";
     setFiles(null);
   }, [setFiles, fileInputRef]);
+
+  const onUploadButtonClick = useCallback(() => {
+    if (files === null) {
+      return;
+    }
+
+    onUpload(files);
+    onClearButtonClick();
+    setShowingInput(false);
+  }, [files, onUpload, onClearButtonClick]);
 
   if (showingInput === false) {
     return (

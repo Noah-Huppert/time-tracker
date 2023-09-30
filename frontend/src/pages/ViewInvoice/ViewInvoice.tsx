@@ -23,19 +23,17 @@ import {
 } from "../../lib/api";
 import { isLeft } from "fp-ts/lib/Either";
 import WarningIcon from "@mui/icons-material/Warning";
-import { Link as RouterLink, useParams } from "react-router-dom";
-import { ROUTES } from "../../lib/routes";
+import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 import dayjs from "dayjs";
 import dayjsDuration from "dayjs/plugin/duration";
-import { nanosecondsToDuration } from "../../lib/time";
+import { DATE_FORMAT, DURATION_FORMAT, nanosecondsToDuration } from "../../lib/time";
 import { useReactToPrint } from "react-to-print";
 import PrintIcon from "@mui/icons-material/Print";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 dayjs.extend(dayjsDuration);
 
-const DATE_FORMAT = "YY-MM-DD HH:mm:ss";
-const DURATION_FORMAT = "HH:mm:ss";
+
 
 const BorderedTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.root}`]: {
@@ -58,6 +56,8 @@ export const PageViewInvoice = () => {
     content: () => ref.current,
   });
 
+  const navigate = useNavigate();
+
   return (
     <>
       <AppBar component="nav" position="static">
@@ -70,9 +70,8 @@ export const PageViewInvoice = () => {
             }}
           >
             <Button
-              component={RouterLink}
               startIcon={<ArrowBackIcon />}
-              to={ROUTES.timeEntries.make()}
+              onClick={() => navigate(-1)}
               variant="contained"
               color="secondary"
             >
@@ -154,8 +153,8 @@ export const Invoice = forwardRef((props, ref) => {
     >
       <Box
         sx={{
-          width: "50rem",
-          padding: "2rem",
+          width: "200mm",
+          padding: "10mm",
         }}
       >
         <InvoiceHeader
@@ -340,7 +339,6 @@ const TimeEntriesTable = ({
 }: {
   readonly timeEntries: InvoiceTimeEntrySchemaType[];
 }) => {
-  console.log(timeEntries[0].time_entry.duration);
   return (
     <>
       Timesheet:

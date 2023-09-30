@@ -11,7 +11,9 @@ export type ToastOpts =
       readonly kind: "success";
       readonly message: string;
     };
-export const ToastCtx = createContext(() => {});
+export const ToastCtx = createContext((opts: ToastOpts) => {
+  console.error(opts);
+});
 type ToastItem = ToastOpts & {
   readonly id: string;
 };
