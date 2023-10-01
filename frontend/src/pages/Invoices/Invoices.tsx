@@ -115,14 +115,9 @@ export const PageInvoices = () => {
             Invoices
           </Typography>
 
-          <Filters<typeof filters[keyof typeof filters], typeof filters>
+          <Filters
             filterValues={filters}
-            setFilter={(key, value) => setFilters((filters) => {
-              return {
-                ...filters,
-                [key]: value,
-              };
-            })}
+            setFilterValues={setFilters}
             filterConditions={{
               archived: {
                 name: "Archived",
