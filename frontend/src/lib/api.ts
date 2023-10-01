@@ -191,7 +191,13 @@ export const api = {
   },
 
   invoices: {
-    list: ({ ids, archived }: { readonly ids?: number[]; readonly archived?: boolean }) =>
+    list: ({
+      ids,
+      archived,
+    }: {
+      readonly ids?: number[];
+      readonly archived?: boolean;
+    }) =>
       makeReq({
         path: "invoices/",
         method: "GET",

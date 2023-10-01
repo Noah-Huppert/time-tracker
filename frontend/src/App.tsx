@@ -33,7 +33,7 @@ const router = createBrowserRouter([
   },
   {
     path: ROUTES.invoices.pattern,
-    element: <PageInvoices />
+    element: <PageInvoices />,
   },
   {
     path: ROUTES.viewInvoice.pattern,
