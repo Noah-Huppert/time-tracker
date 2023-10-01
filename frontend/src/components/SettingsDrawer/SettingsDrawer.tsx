@@ -20,6 +20,14 @@ type DraftInvoiceSettings = {
   sender: string;
 };
 
+function emptyInvoiceSettingsDraft(): DraftInvoiceSettings {
+  return {
+    hourly_rate: "",
+    recipient: "",
+    sender: "",
+  };
+}
+
 function draftInvoiceSettingsFromSchemaType(
   settings: InvoiceSettingsSchemaType,
 ): DraftInvoiceSettings {
@@ -62,7 +70,7 @@ export const SettingsDrawer = ({
       return;
     }
 
-    setInvoiceSettings(draftInvoiceSettingsFromSchemaType(res.right));
+    setInvoiceSettings(emptyInvoiceSettingsDraft());
   }, [setInvoiceSettings]);
 
   useEffect(() => {
@@ -114,14 +122,7 @@ export const SettingsDrawer = ({
 
     // Check if no settings exist
     if (res.right === null) {
-      setInvoiceSettings(
-        draftInvoiceSettingsFromSchemaType({
-          id: 0,
-          hourly_rate: 0,
-          recipient: "",
-          sender: "",
-        }),
-      );
+      setInvoiceSettings(emptyInvoiceSettingsDraft());
       return;
     }
 

@@ -166,7 +166,7 @@ export const api = {
       makeReq({
         path: "invoice-settings/",
         method: "GET",
-        shape: invoiceSettingsSchema,
+        shape: z.nullable(invoiceSettingsSchema),
       }),
 
     set: ({

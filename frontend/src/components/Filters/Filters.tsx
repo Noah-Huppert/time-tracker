@@ -38,11 +38,15 @@ type FilterCondition<V> = {
  * Component which allows user to select filter value.
  */
 type FilterConditionComponent<V> = ({
+  name,
   value,
   setValue,
+  hide,
 }: {
+  readonly name: string;
   readonly value: V | null;
   readonly setValue: (value: V | null) => void;
+  readonly hide: () => void,
 }) => JSX.Element;
 
 export const Filters = <
@@ -65,10 +69,10 @@ export const Filters = <
 
   // Categorize which filter conditions are currently applied
   const selectedFilters = Object.keys(filterValues).filter(
-    (key) => filterValues[key] !== null,
+    (key) => filterValues[key] !== null || showingFilterComponent.includes(key)
   );
   const nonSelectedFilters = Object.keys(filterValues).filter(
-    (key) => filterValues[key] === null,
+    (key) => filterValues[key] === null
   );
 
   const setFilter = <K extends keyof FilterValues>(
@@ -130,7 +134,6 @@ export const Filters = <
         {selectedFilters.map((key) => (
           <Box
             key={key}
-            onBlur={() => showFilterComponent(key, false)}
             sx={{
               marginLeft: "0.25rem",
               marginRight: "0.25rem",
@@ -138,8 +141,10 @@ export const Filters = <
           >
             {showingFilterComponent.includes(key) ?
               filterConditions[key].component({
+                name: filterConditions[key].name,
                 value: filterValues[key],
                 setValue: (value) => setFilter(key, value),
+                hide: () => showFilterComponent(key, false),
               })
             : (
               <Chip
@@ -175,6 +180,7 @@ export const Filters = <
               onClick={() => {
                 setSelectFilterPopoverAnchorEl(null);
                 setFilter(key, filterConditions[key].start());
+                showFilterComponent(key, true);
               }}
             >
               {filterConditions[key].name}

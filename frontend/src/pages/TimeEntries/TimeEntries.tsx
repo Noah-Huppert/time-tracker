@@ -22,28 +22,36 @@ import WarningIcon from "@mui/icons-material/Warning";
 import { isLeft } from "fp-ts/lib/Either";
 import dayjsDuration from "dayjs/plugin/duration";
 import dayjs from "dayjs";
-import { DateFilter } from "../../components/DateFilter/DateFilter";
+import { DateFilter } from "../../components/Filters/DateFilter";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "../../lib/routes";
 import { Header } from "../../components/Header/Header";
-import { nanosecondsToDuration } from "../../lib/time";
+import { DATE_FORMAT, nanosecondsToDuration } from "../../lib/time";
 import {
   ReadFile,
   ReadFiles,
   UploadFile,
 } from "../../components/UploadFile/UploadFile";
 import { ToastCtx } from "../../components/Toast/Toast";
+import { Filters } from "../../components/Filters/Filters";
 
 dayjs.extend(dayjsDuration);
 
 type WebDataTimeEntriesList = ListTimeEntriesSchemaType | "loading" | "error";
 
+type TimeEntriesFilters = {
+  startDate: Date | null,
+  endDate: Date | null,
+}
+
 export const PageTimeEntries = () => {
   const navigate = useNavigate();
   const toast = useContext(ToastCtx);
 
-  const [filterStartDate, setFilterStartDate] = useState<Date | null>(null);
-  const [filterEndDate, setFilterEndDate] = useState<Date | null>(null);
+  const [filters, setFilters] = useState<TimeEntriesFilters>({
+    startDate: null,
+    endDate: null,
+  });
   const [timeEntries, setTimeEntries] =
     useState<WebDataTimeEntriesList>("loading");
 
@@ -51,8 +59,8 @@ export const PageTimeEntries = () => {
     setTimeEntries("loading");
 
     const res = await api.timeEntries.list({
-      startDate: filterStartDate,
-      endDate: filterEndDate,
+      startDate: filters.startDate,
+      endDate: filters.endDate,
     });
 
     if (isLeft(res)) {
@@ -62,10 +70,10 @@ export const PageTimeEntries = () => {
     }
 
     setTimeEntries(res.right);
-  }, [filterStartDate, filterEndDate]);
+  }, [filters.startDate, filters.endDate]);
 
   const onCreateInvoice = useCallback(async () => {
-    if (filterStartDate === null) {
+    if (filters.startDate === null) {
       toast({
         kind: "error",
         message: "Start date required to make an invoice",
@@ -73,7 +81,7 @@ export const PageTimeEntries = () => {
       return;
     }
 
-    if (filterEndDate === null) {
+    if (filters.endDate === null) {
       toast({
         kind: "error",
         message: "End date required to make an invoice",
@@ -92,10 +100,18 @@ export const PageTimeEntries = () => {
       return;
     }
 
+    if (invoiceSettings.right === null) {
+      toast({
+        kind: "error",
+        message: "Failed to create invoice, please configure invoice settings first",
+      });
+      return;
+    }
+
     const invoice = await api.invoices.create({
       invoiceSettingsID: invoiceSettings.right.id,
-      startDate: filterStartDate,
-      endDate: filterEndDate,
+      startDate: filters.startDate,
+      endDate: filters.endDate,
     });
     if (isLeft(invoice)) {
       console.error(`Failed to create invoice: ${invoice.left}`);
@@ -111,7 +127,7 @@ export const PageTimeEntries = () => {
         invoiceID: invoice.right.id,
       }),
     );
-  }, [filterStartDate, filterEndDate, navigate, toast]);
+  }, [filters.startDate, filters.endDate, navigate, toast]);
 
   const onUploadTimeSheets = useCallback(
     async (fileList: FileList) => {
@@ -168,17 +184,10 @@ export const PageTimeEntries = () => {
           sx={{
             display: "flex",
             flexDirection: "row",
-            justifyContent: "space-between",
+            justifyContent: "space-around",
             marginBottom: "1rem",
           }}
         >
-          <PageTimeFilters
-            filterStartDate={filterStartDate}
-            setFilterStartDate={setFilterStartDate}
-            filterEndDate={filterEndDate}
-            setFilterEndDate={setFilterEndDate}
-          />
-
           <PageTimeInformation timeEntries={timeEntries} />
 
           <PageTimeActions
@@ -187,58 +196,41 @@ export const PageTimeEntries = () => {
           />
         </Box>
 
-        <TimeEntriesTable timeEntries={timeEntries} />
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <Box
+            sx={{
+              marginBottom: "1rem",
+            }}
+          >
+            <Filters
+              filterValues={filters}
+              setFilterValues={setFilters}
+              filterConditions={{
+                startDate: {
+                  name: "Start Date",
+                  start: () => null,
+                  display: (value) => dayjs(value).format(DATE_FORMAT),
+                  component: DateFilter,
+                },
+                endDate: {
+                  name: "End Date",
+                  start: () => null,
+                  display: (value) => dayjs(value).format(DATE_FORMAT),
+                  component: DateFilter,
+                },
+              }}
+            />
+          </Box>
+
+          <TimeEntriesTable timeEntries={timeEntries} />
+        </Box>
       </Box>
     </>
-  );
-};
-
-const PageTimeFilters = ({
-  filterStartDate,
-  setFilterStartDate,
-  filterEndDate,
-  setFilterEndDate,
-}: {
-  readonly filterStartDate: Date | null;
-  readonly setFilterStartDate: (value: Date | null) => void;
-  readonly filterEndDate: Date | null;
-  readonly setFilterEndDate: (value: Date | null) => void;
-}) => {
-  return (
-    <Box>
-      <Typography variant="h5">Filters</Typography>
-
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <Box
-          sx={{
-            marginTop: "0.5rem",
-          }}
-        >
-          <DateFilter
-            label="Start Date"
-            value={filterStartDate}
-            onChange={setFilterStartDate}
-          />
-        </Box>
-
-        <Box
-          sx={{
-            marginTop: "0.5rem",
-          }}
-        >
-          <DateFilter
-            label="End Date"
-            value={filterEndDate}
-            onChange={setFilterEndDate}
-          />
-        </Box>
-      </Box>
-    </Box>
   );
 };
 
@@ -267,7 +259,7 @@ const PageTimeInformationContent = ({
   readonly timeEntries: WebDataTimeEntriesList;
 }) => {
   const [invoiceSettings, setInvoiceSettings] = useState<
-    InvoiceSettingsSchemaType | "loading" | "error"
+    InvoiceSettingsSchemaType | "loading" | "error" | "notfound"
   >("loading");
 
   const fetchInvoiceSettings = useCallback(async () => {
@@ -277,7 +269,7 @@ const PageTimeInformationContent = ({
       return;
     }
 
-    setInvoiceSettings(res.right);
+    setInvoiceSettings(res.right || "notfound");
   }, []);
 
   useEffect(() => {
@@ -299,6 +291,14 @@ const PageTimeInformationContent = ({
         <Typography>Failed to load time entries</Typography>
       </>
     );
+  }
+
+  if (invoiceSettings === "notfound") {
+    return (
+      <>
+        <Typography>Please configure invoice settings to see more information</Typography>
+      </>
+    )
   }
 
   const totalDuration = nanosecondsToDuration(timeEntries.total_duration);

@@ -11,10 +11,9 @@ import {
   Button,
   Box,
 } from "@mui/material";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api, InvoiceSchemaType } from "../../lib/api";
 import { isLeft } from "fp-ts/lib/Either";
-import { ToastCtx } from "../../components/Toast/Toast";
 import WarningIcon from "@mui/icons-material/Warning";
 import {
   DATE_FORMAT,
@@ -26,54 +25,26 @@ import { ROUTES } from "../../lib/routes";
 import { useNavigate } from "react-router-dom";
 import { Header } from "../../components/Header/Header";
 import { Filters } from "../../components/Filters/Filters";
+import { BooleanFilter } from "../../components/Filters/BooleanFilter";
 
-const BoolFilter = ({
-  value,
-  setValue,
-}: {
-  readonly value: boolean | null;
-  readonly setValue: (value: boolean | null) => void;
-}) => {
-  return (
-    <>
-      <Button
-        onClick={() => (value === null ? setValue(false) : setValue(!value))}
-      >
-        Select boolean:
-        {JSON.stringify(value)}
-      </Button>
-    </>
-  );
-};
-
-const NumberFilter = ({
-  value,
-  setValue,
-}: {
-  readonly value: number | null;
-  readonly setValue: (value: number | null) => void;
-}) => {
-  return (
-    <>
-      <Button
-        onClick={() => (value === null ? setValue(0) : setValue(value + 1))}
-      >
-        Click to increment:
-        {JSON.stringify(value)}
-      </Button>
-    </>
-  );
+type InvoiceFilters = {
+  archived: boolean | null;
 };
 
 export const PageInvoices = () => {
   const navigate = useNavigate();
 
+  const [filters, setFilters] = useState<InvoiceFilters>({
+    archived: false,
+  });
   const [invoices, setInvoices] = useState<
     InvoiceSchemaType[] | "loading" | "error"
   >("loading");
 
-  const fetchInvoices = useCallback(async () => {
-    const res = await api.invoices.list({});
+  const fetchInvoices = useCallback(async (filters: InvoiceFilters) => {
+    const res = await api.invoices.list({
+      archived: filters.archived || undefined
+    });
     if (isLeft(res)) {
       console.error(`Failed to list invoices: ${res.left}`);
       setInvoices("error");
@@ -84,16 +55,10 @@ export const PageInvoices = () => {
   }, [setInvoices]);
 
   useEffect(() => {
-    fetchInvoices();
-  }, [fetchInvoices]);
-
-  const [filters, setFilters] = useState<{
-    archived: boolean | null;
-    counter: number | null;
-  }>({
-    archived: null,
-    counter: null,
-  });
+    fetchInvoices({
+      archived: filters.archived
+    });
+  }, [fetchInvoices, filters.archived]);
 
   if (invoices === "loading") {
     return (
@@ -145,13 +110,7 @@ export const PageInvoices = () => {
                   name: "Archived",
                   start: () => false,
                   display: (value) => JSON.stringify(value),
-                  component: BoolFilter,
-                },
-                counter: {
-                  name: "Counter",
-                  start: () => 0,
-                  display: (value) => value?.toString() || "",
-                  component: NumberFilter,
+                  component: BooleanFilter,
                 },
               }}
             />
