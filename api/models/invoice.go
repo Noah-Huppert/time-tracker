@@ -183,7 +183,7 @@ func (r DBInvoiceRepo) List(opts ListInvoicesOpts) ([]Invoice, error) {
 	}
 
 	if opts.Archived != nil {
-		tx.Where("archived IS ?", *opts.Archived)
+		tx.Where("archived = ?", *opts.Archived)
 	}
 
 	// Get

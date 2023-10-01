@@ -40,6 +40,7 @@ CREATE TABLE "public"."invoices" (
   "amount_due" numeric NOT NULL,
   "sent_to_client" timestamptz NULL,
   "paid_by_client" timestamptz NULL,
+  "archived" boolean NOT NULL,
   PRIMARY KEY ("id"),
   CONSTRAINT "fk_invoices_invoice_settings" FOREIGN KEY ("invoice_settings_id") REFERENCES "public"."invoice_settings" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION
 );

@@ -381,14 +381,6 @@ func (s Server) EPInvoiceList(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to list invoices: %s", err)
 	}
 
-	if len(invoices) == 0 {
-		idsStr := []string{}
-		for _, id := range listOpts.IDs {
-			idsStr = append(idsStr, fmt.Sprintf("%d", id))
-		}
-		return fiber.NewError(fiber.StatusNotFound, fmt.Sprintf("invoice(s) with ID %s not found", strings.Join(idsStr, ",")))
-	}
-
 	return c.JSON(invoices)
 }
 
