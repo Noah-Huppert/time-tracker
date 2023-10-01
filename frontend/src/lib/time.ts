@@ -12,5 +12,6 @@ export function nanosecondsToDuration(nanoseconds: number): Duration {
   );
 }
 
-export const DATE_FORMAT = "YY-MM-DD HH:mm:ss";
+export const DATE_TIME_FORMAT = "YY-MM-DD HH:mm:ss";
+export const DATE_FORMAT = "YY-MM-DD";
 export const DURATION_FORMAT = "HH:mm:ss";

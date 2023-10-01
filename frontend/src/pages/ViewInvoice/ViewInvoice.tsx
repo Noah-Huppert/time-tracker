@@ -27,7 +27,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import dayjs from "dayjs";
 import dayjsDuration from "dayjs/plugin/duration";
 import {
-  DATE_FORMAT,
+  DATE_TIME_FORMAT,
   DURATION_FORMAT,
   nanosecondsToDuration,
 } from "../../lib/time";
@@ -247,7 +247,7 @@ const InvoiceHeader = ({
               paddingRight: "0.5rem",
             }}
           >
-            {dayjs(periodStart).format(DATE_FORMAT)}
+            {dayjs(periodStart).format(DATE_TIME_FORMAT)}
           </Typography>
           <Typography>-</Typography>
           <Typography
@@ -255,7 +255,7 @@ const InvoiceHeader = ({
               paddingLeft: "0.5rem",
             }}
           >
-            {dayjs(periodEnd).format(DATE_FORMAT)}
+            {dayjs(periodEnd).format(DATE_TIME_FORMAT)}
           </Typography>
         </Box>
       </Box>
@@ -316,11 +316,11 @@ const SummaryTable = ({
           <TableBody>
             <TableRow>
               <BorderedTableCell>
-                {dayjs(periodStart).format(DATE_FORMAT)}
+                {dayjs(periodStart).format(DATE_TIME_FORMAT)}
               </BorderedTableCell>
 
               <BorderedTableCell>
-                {dayjs(periodEnd).format(DATE_FORMAT)}
+                {dayjs(periodEnd).format(DATE_TIME_FORMAT)}
               </BorderedTableCell>
 
               <BorderedTableCell>
@@ -369,11 +369,11 @@ const TimeEntriesTable = ({
             {timeEntries.map((timeEntry) => (
               <TableRow key={`invoice-timesheet-${timeEntry.id}`}>
                 <BorderedTableCell>
-                  {dayjs(timeEntry.time_entry.start_time).format(DATE_FORMAT)}
+                  {dayjs(timeEntry.time_entry.start_time).format(DATE_TIME_FORMAT)}
                 </BorderedTableCell>
 
                 <BorderedTableCell>
-                  {dayjs(timeEntry.time_entry.end_time).format(DATE_FORMAT)}
+                  {dayjs(timeEntry.time_entry.end_time).format(DATE_TIME_FORMAT)}
                 </BorderedTableCell>
 
                 <BorderedTableCell>

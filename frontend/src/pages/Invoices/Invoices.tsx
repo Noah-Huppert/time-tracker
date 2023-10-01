@@ -17,6 +17,7 @@ import { isLeft } from "fp-ts/lib/Either";
 import WarningIcon from "@mui/icons-material/Warning";
 import {
   DATE_FORMAT,
+  DATE_TIME_FORMAT,
   DURATION_FORMAT,
   nanosecondsToDuration,
 } from "../../lib/time";
@@ -144,8 +145,8 @@ export const PageInvoices = () => {
                     cursor: "pointer",
                   }}
                 >
-                  <TableCell>{invoice.start_date.toISOString()}</TableCell>
-                  <TableCell>{invoice.end_date.toISOString()}</TableCell>
+                  <TableCell>{dayjs(invoice.start_date).format(DATE_FORMAT)}</TableCell>
+                  <TableCell>{dayjs(invoice.end_date).format(DATE_FORMAT)}</TableCell>
                   <TableCell>
                     {nanosecondsToDuration(invoice.duration).format(
                       DURATION_FORMAT,
@@ -155,12 +156,12 @@ export const PageInvoices = () => {
                   <TableCell>
                     {invoice.sent_to_client === null
                       ? ""
-                      : dayjs(invoice.sent_to_client).format(DATE_FORMAT)}
+                      : dayjs(invoice.sent_to_client).format(DATE_TIME_FORMAT)}
                   </TableCell>
                   <TableCell>
                     {invoice.paid_by_client === null
                       ? ""
-                      : dayjs(invoice.paid_by_client).format(DATE_FORMAT)}
+                      : dayjs(invoice.paid_by_client).format(DATE_TIME_FORMAT)}
                   </TableCell>
                 </TableRow>
               ))}

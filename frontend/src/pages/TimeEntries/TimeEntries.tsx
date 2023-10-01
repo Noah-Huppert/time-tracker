@@ -26,7 +26,7 @@ import { DateFilter } from "../../components/Filters/DateFilter";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "../../lib/routes";
 import { Header } from "../../components/Header/Header";
-import { DATE_FORMAT, nanosecondsToDuration } from "../../lib/time";
+import { DATE_FORMAT, DATE_TIME_FORMAT, nanosecondsToDuration } from "../../lib/time";
 import {
   ReadFile,
   ReadFiles,
@@ -448,8 +448,8 @@ const TimeEntryTableRow = ({
 
   return (
     <TableRow>
-      <TableCell>{timeEntry.start_time.toISOString()}</TableCell>
-      <TableCell>{timeEntry.end_time.toISOString()}</TableCell>
+      <TableCell>{dayjs(timeEntry.start_time).format(DATE_TIME_FORMAT)}</TableCell>
+      <TableCell>{dayjs(timeEntry.end_time).format(DATE_TIME_FORMAT)}</TableCell>
       <TableCell>{duration.format("HH:mm:ss")}</TableCell>
       <TableCell>{timeEntry.comment}</TableCell>
     </TableRow>
