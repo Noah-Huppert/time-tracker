@@ -37,6 +37,9 @@ type Invoice struct {
 	// PaidByClient if not null the invoice was paid by the client on that date
 	PaidByClient *time.Time `json:"paid_by_client"`
 
+	// Archived is used to soft delete invoices
+	Archived bool `gorm:"not null" json:"archived"`
+
 	// InvoiceSettings is an ORM filled field based on the InvoiceSettingsID foreign key
 	InvoiceSettings InvoiceSettings `json:"invoice_settings"`
 
@@ -102,6 +105,9 @@ type CreateInvoiceRes struct {
 type ListInvoicesOpts struct {
 	// IDs is a list of invoice IDs which should be retrieved
 	IDs []uint64
+
+	// Archived filters invoices which are archived or not archived, if nil no filtering done
+	Archived *bool
 }
 
 // UpdateInvoiceOpts specify the new values of the parts of an invoice which can be updated
@@ -170,11 +176,17 @@ func (r DBInvoiceRepo) Create(opts CreateInvoiceOpts) (*CreateInvoiceRes, error)
 }
 
 func (r DBInvoiceRepo) List(opts ListInvoicesOpts) ([]Invoice, error) {
+	// Filter options
 	tx := r.db.Model(&Invoice{}).Preload("InvoiceTimeEntries").Preload("InvoiceTimeEntries.TimeEntry").Preload("InvoiceSettings")
 	if len(opts.IDs) > 0 {
 		tx.Where("id IN ?", opts.IDs)
 	}
 
+	if opts.Archived != nil {
+		tx.Where("archived IS ?", *opts.Archived)
+	}
+
+	// Get
 	var invoices []Invoice
 	if res := tx.Find(&invoices); res.Error != nil {
 		return nil, fmt.Errorf("failed to run list query: %s", res.Error)

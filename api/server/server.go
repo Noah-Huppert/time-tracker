@@ -370,6 +370,11 @@ func (s Server) EPInvoiceList(c *fiber.Ctx) error {
 		}
 	}
 
+	if _, ok := c.Queries()["archived"]; ok {
+		boolQuery := c.QueryBool("archived", true)
+		listOpts.Archived = &boolQuery
+	}
+
 	// Perform list
 	invoices, err := s.repos.Invoice.List(listOpts)
 	if err != nil {
@@ -406,9 +411,12 @@ func (s Server) EPInvoiceCreate(c *fiber.Ctx) error {
 	}
 
 	// Get time entries
+	startDateOpt := time.Date(body.StartDate.Year(), body.StartDate.Month(), body.StartDate.Day(), 0, 0, 0, 0, body.StartDate.Location())
+	endDateOpt := time.Date(body.EndDate.Year(), body.EndDate.Month(), body.EndDate.Day(), 23, 59, 59, 999999999, body.EndDate.Location())
+
 	timeEntries, err := s.repos.TimeEntry.List(models.ListTimeEntriesOpts{
-		StartDate: &body.StartDate,
-		EndDate:   &body.EndDate,
+		StartDate: &startDateOpt,
+		EndDate:   &endDateOpt,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to find time entries for invoice time period: %s", err)

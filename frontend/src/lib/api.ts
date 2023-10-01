@@ -74,7 +74,7 @@ async function makeReq<T>({
   readonly path: string;
   readonly method: string;
   readonly shape: z.Schema<T>;
-  readonly queryParams?: { [key: string]: string | undefined | null };
+  readonly queryParams?: { [key: string]: string | boolean | undefined | null };
   readonly body?: object;
 }): Promise<Either<Error, T>> {
   if (path[0] === "/") {
@@ -90,7 +90,11 @@ async function makeReq<T>({
   if (queryParams !== undefined) {
     Object.entries(queryParams).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        setQueryParams[key] = value;
+        if (typeof value === "boolean") {
+          setQueryParams[key] = JSON.stringify(value);
+        } else {
+          setQueryParams[key] = value;
+        }
       }
     });
   }
@@ -187,13 +191,14 @@ export const api = {
   },
 
   invoices: {
-    list: ({ ids }: { readonly ids?: number[] }) =>
+    list: ({ ids, archived }: { readonly ids?: number[]; readonly archived?: boolean }) =>
       makeReq({
         path: "invoices/",
         method: "GET",
         shape: z.array(invoiceSchema),
         queryParams: {
           ids: ids?.join(",") || undefined,
+          archived,
         },
       }),
 
