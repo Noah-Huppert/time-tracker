@@ -9,7 +9,45 @@ import dayjs from "dayjs";
 import { ROUTES } from "../../lib/routes";
 import { Link, useNavigate } from "react-router-dom";
 import { Header } from "../../components/Header/Header";
+import { Filters } from "../../components/Filters/Filters";
 
+const BoolFilter = ({
+  value,
+  setValue,
+}: {
+  readonly value: boolean | null
+  readonly setValue: (value: boolean | null) => void
+}) => {
+  return (
+    <>
+      <Button
+        onClick={() => value === null ? setValue(false) : setValue(!value)}
+      >
+        Select boolean:
+        {JSON.stringify(value)}
+      </Button>
+    </>
+  )
+}
+
+const NumberFilter = ({
+  value,
+  setValue,
+}: {
+  readonly value: number | null
+  readonly setValue: (value: number | null) => void
+}) => {
+  return (
+    <>
+      <Button
+        onClick={() => value === null ? setValue(0) : setValue(value+1)}
+      >
+        Click to increment:
+        {JSON.stringify(value)}
+      </Button>
+    </>
+  )
+}
 
 export const PageInvoices = () => {
   const toast = useContext(ToastCtx);
@@ -31,6 +69,14 @@ export const PageInvoices = () => {
   useEffect(() => {
     fetchInvoices();
   }, [fetchInvoices]);
+
+  const [filters, setFilters] = useState<{
+    archived: boolean | null,
+    counter: number | null,
+  }>({
+    archived: null,
+    counter: null,
+  })
 
   if (invoices === "loading") {
     return (
@@ -59,14 +105,38 @@ export const PageInvoices = () => {
           padding: "2rem",
         }}
       >
-        <Typography
-          variant="h5"
-          sx={{
-            marginBottom: "1rem",
-          }}
-        >
-          Invoices
-        </Typography>
+        <Box>
+          <Typography
+            variant="h5"
+            sx={{
+              marginBottom: "1rem",
+            }}
+          >
+            Invoices
+          </Typography>
+
+          <Filters<typeof filters[keyof typeof filters], typeof filters>
+            filterValues={filters}
+            setFilter={(key, value) => setFilters((filters) => {
+              return {
+                ...filters,
+                [key]: value,
+              };
+            })}
+            filterConditions={{
+              archived: {
+                name: "Archived",
+                start: () => false,
+                component: BoolFilter,
+              },
+              counter: {
+                name: "Counter",
+                start: () => 0,
+                component: NumberFilter,
+              }
+            }}
+          />
+        </Box>
 
         <TableContainer component={Paper}>
           <Table>
