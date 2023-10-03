@@ -16,6 +16,7 @@ import {
   Toolbar,
   Drawer,
   IconButton,
+  Switch,
 } from "@mui/material";
 import { forwardRef, useCallback, useContext, useEffect, useRef, useState } from "react";
 
@@ -86,11 +87,13 @@ export const PageViewInvoice = () => {
   const onUpdateInvoice = useCallback(async ({
     sentToClient,
     paidByClient,
+    archived,
   }: UpdateInvoiceOpts) => {
     const res = await api.invoices.update({
       id: invoiceID,
       sentToClient,
       paidByClient,
+      archived,
     });
     if (isLeft(res)) {
       toast({
@@ -206,6 +209,7 @@ export const MetadataDrawer = ({
 }) => {
   const [draftSentToClient, setDraftSentToClient] = useState<Date | null>(invoice.sent_to_client)
   const [draftPaidByClient, setDraftPaidByClient] = useState<Date | null>(invoice.paid_by_client);
+  const [archived, setArchived] = useState(invoice.archived);
 
   return (
     <Drawer
@@ -274,6 +278,25 @@ export const MetadataDrawer = ({
                 </IconButton>
               </TableCell>
             </TableRow>
+
+            <TableRow>
+              <TableCell>
+                <b>Archived</b>
+              </TableCell>
+
+              <TableCell
+                sx={{
+                  display: "flex",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                }}
+              >
+                <Switch
+                  value={archived}
+                  onChange={(e) => setArchived(e.target.checked)}
+                />
+              </TableCell>
+            </TableRow>
           </TableBody>
         </Table>
 
@@ -289,6 +312,7 @@ export const MetadataDrawer = ({
             onClick={() => onUpdateInvoice({
               sentToClient: draftSentToClient,
               paidByClient: draftPaidByClient,
+              archived,
             })}
             sx={{
               display: "flex",
@@ -425,7 +449,7 @@ const InvoiceHeader = ({
               paddingRight: "0.5rem",
             }}
           >
-            {dayjs(periodStart).format(DATE_TIME_FORMAT)}
+            {dayjs(periodStart).format(DATE_FORMAT)}
           </Typography>
           <Typography>-</Typography>
           <Typography
@@ -433,7 +457,7 @@ const InvoiceHeader = ({
               paddingLeft: "0.5rem",
             }}
           >
-            {dayjs(periodEnd).format(DATE_TIME_FORMAT)}
+            {dayjs(periodEnd).format(DATE_FORMAT)}
           </Typography>
         </Box>
       </Box>
@@ -469,7 +493,8 @@ const SummaryTable = ({
 }) => {
   return (
     <>
-      Owed:
+      Due 
+      <br /><br />
       <div>
         <table>
           <thead>
@@ -537,7 +562,8 @@ const TimeEntriesTable = ({
 }) => {
   return (
     <>
-      Timesheet:
+      Timesheet
+      <br /><br />
       <div>
         <table>
           <thead>

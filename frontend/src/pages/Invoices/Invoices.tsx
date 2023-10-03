@@ -43,7 +43,7 @@ export const PageInvoices = () => {
 
   const fetchInvoices = useCallback(async (filters: InvoiceFilters) => {
     const res = await api.invoices.list({
-      archived: filters.archived || undefined
+      archived: filters.archived !== null ? filters.archived : undefined
     });
     if (isLeft(res)) {
       console.error(`Failed to list invoices: ${res.left}`);
@@ -79,12 +79,18 @@ export const PageInvoices = () => {
   }
 
   return (
-    <>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       <Header />
       <Box
         sx={{
-          width: "50rem",
+          maxWidth: "50rem",
           padding: "2rem",
+          alignSelf: "center",
         }}
       >
         <Box>
@@ -168,6 +174,6 @@ export const PageInvoices = () => {
           </Table>
         </TableContainer>
       </Box>
-    </>
+    </Box>
   );
 };

@@ -54,6 +54,7 @@ const invoiceSchema = z.object({
   paid_by_client: z.nullable(z.coerce.date()),
   invoice_settings: invoiceSettingsSchema,
   invoice_time_entries: z.array(invoiceTimeEntrySchema),
+  archived: z.boolean(),
 });
 export type InvoiceSchemaType = z.infer<typeof invoiceSchema>;
 
@@ -65,6 +66,7 @@ export type CSVFile = {
 export type UpdateInvoiceOpts = {
   readonly sentToClient: Date | null
   readonly paidByClient: Date  | null
+  readonly archived: boolean
 }
 
 const BASE_URL = "http://localhost:4000/api/v0/";
@@ -237,6 +239,7 @@ export const api = {
       id,
       sentToClient,
       paidByClient,
+      archived,
     }: {
       readonly id: number; 
     } & UpdateInvoiceOpts) => makeReq({
@@ -246,6 +249,7 @@ export const api = {
       body: {
         sent_to_client: sentToClient,
         paid_by_client: paidByClient,
+        archived,
       },
     }),
   },

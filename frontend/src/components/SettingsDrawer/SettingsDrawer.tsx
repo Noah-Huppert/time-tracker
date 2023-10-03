@@ -70,7 +70,12 @@ export const SettingsDrawer = ({
       return;
     }
 
-    setInvoiceSettings(emptyInvoiceSettingsDraft());
+    if (res.right === null) {
+      setInvoiceSettings(emptyInvoiceSettingsDraft());
+      return;
+    }
+
+    setInvoiceSettings(draftInvoiceSettingsFromSchemaType(res.right));
   }, [setInvoiceSettings]);
 
   useEffect(() => {

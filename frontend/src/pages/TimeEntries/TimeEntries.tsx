@@ -173,18 +173,25 @@ export const PageTimeEntries = () => {
   }, [fetchTimeEntries]);
 
   return (
-    <>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       <Header />
       <Box
         sx={{
           padding: "1rem",
+          maxWidth: "50rem",
+          alignSelf: "center",
         }}
       >
         <Box
           sx={{
             display: "flex",
             flexDirection: "row",
-            justifyContent: "space-around",
+            justifyContent: "space-between",
             marginBottom: "1rem",
           }}
         >
@@ -230,7 +237,7 @@ export const PageTimeEntries = () => {
           <TimeEntriesTable timeEntries={timeEntries} />
         </Box>
       </Box>
-    </>
+    </Box>
   );
 };
 
