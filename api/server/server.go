@@ -9,6 +9,7 @@ import (
 
 	"github.com/Noah-Huppert/gointerrupt"
 	"github.com/Noah-Huppert/time-tracker/api/models"
+	"github.com/Noah-Huppert/time-tracker/api/timeutil"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/contrib/fiberzap/v2"
 	"github.com/gofiber/fiber/v2"
@@ -159,19 +160,19 @@ func (s Server) EPTimeEntriesList(c *fiber.Ctx) error {
 	}
 
 	if startTimeQuery, ok := c.Queries()["start_date"]; ok {
-		startTime, err := time.Parse(time.RFC3339, startTimeQuery)
+		startTime, err := timeutil.ParseFormat(time.RFC3339, startTimeQuery)
 		if err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("failed to parse start_time '%s' as ISO-8601 date: %s", startTimeQuery, err))
 		}
-		listOpts.StartDate = &startTime
+		listOpts.StartDate = startTime
 	}
 
 	if endTimeQuery, ok := c.Queries()["end_date"]; ok {
-		endTime, err := time.Parse(time.RFC3339, endTimeQuery)
+		endTime, err := timeutil.ParseFormat(time.RFC3339, endTimeQuery)
 		if err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("failed to parse end_time '%s' as ISO-8601 date: %s", endTimeQuery, err))
 		}
-		listOpts.EndDate = &endTime
+		listOpts.EndDate = endTime
 	}
 
 	// Get time entries
@@ -404,12 +405,19 @@ func (s Server) EPInvoiceCreate(c *fiber.Ctx) error {
 	}
 
 	// Get time entries
-	startDateOpt := time.Date(body.StartDate.Year(), body.StartDate.Month(), body.StartDate.Day(), 0, 0, 0, 0, body.StartDate.Location())
-	endDateOpt := time.Date(body.EndDate.Year(), body.EndDate.Month(), body.EndDate.Day(), 23, 59, 59, 999999999, body.EndDate.Location())
+	startDateOpt, err := timeutil.NewAPITime(time.Date(body.StartDate.Year(), body.StartDate.Month(), body.StartDate.Day(), 0, 0, 0, 0, body.StartDate.Location()))
+	if err != nil {
+		return fmt.Errorf("failed to parse start date as APITime: %s", err)
+	}
+
+	endDateOpt, err := timeutil.NewAPITime(time.Date(body.EndDate.Year(), body.EndDate.Month(), body.EndDate.Day(), 23, 59, 59, 999999999, body.EndDate.Location()))
+	if err != nil {
+		return fmt.Errorf("failed to parse end date as APITime: %s", err)
+	}
 
 	timeEntries, err := s.repos.TimeEntry.List(models.ListTimeEntriesOpts{
-		StartDate: &startDateOpt,
-		EndDate:   &endDateOpt,
+		StartDate: startDateOpt,
+		EndDate:   endDateOpt,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to find time entries for invoice time period: %s", err)
@@ -418,8 +426,8 @@ func (s Server) EPInvoiceCreate(c *fiber.Ctx) error {
 	// Create invoice
 	res, err := s.repos.Invoice.Create(models.CreateInvoiceOpts{
 		InvoiceSettings: *invoiceSettings,
-		StartDate:       body.StartDate,
-		EndDate:         body.EndDate,
+		StartDate:       *startDateOpt,
+		EndDate:         *endDateOpt,
 		TimeEntries:     timeEntries,
 	})
 	if err != nil {
@@ -435,10 +443,10 @@ type EPInvoiceCreateReq struct {
 	InvoiceSettingsID uint `json:"invoice_settings_id"`
 
 	// StartDate of period of performance for invoice
-	StartDate time.Time `json:"start_date"`
+	StartDate timeutil.APITime `json:"start_date"`
 
 	// EndDate of period of performance for invoice
-	EndDate time.Time `json:"end_date"`
+	EndDate timeutil.APITime `json:"end_date"`
 }
 
 func (s Server) EPInvoiceUpdate(c *fiber.Ctx) error {
@@ -459,6 +467,7 @@ func (s Server) EPInvoiceUpdate(c *fiber.Ctx) error {
 		ID:           uint(id),
 		SentToClient: body.SentToClient,
 		PaidByClient: body.PaidByClient,
+		Archived:     body.Archived,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to update invoice: %s", err)
@@ -469,6 +478,7 @@ func (s Server) EPInvoiceUpdate(c *fiber.Ctx) error {
 
 // EPInvoiceUpdateReq is the request body for the update invoice endpoint
 type EPInvoiceUpdateReq struct {
-	SentToClient *time.Time `json:"sent_to_client"`
-	PaidByClient *time.Time `json:"paid_by_client"`
+	SentToClient *timeutil.APITime `json:"sent_to_client"`
+	PaidByClient *timeutil.APITime `json:"paid_by_client"`
+	Archived     bool              `json:"archived"`
 }

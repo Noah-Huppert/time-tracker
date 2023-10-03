@@ -6,6 +6,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/Noah-Huppert/time-tracker/api/timeutil"
 	"github.com/mitchellh/hashstructure/v2"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -17,10 +18,10 @@ type TimeEntry struct {
 	ID uint `gorm:"primarykey" json:"id"`
 
 	/// StartTime is the date and time when the period started
-	StartTime time.Time `gorm:"not null;index:time_entry_identity_unique,unique" json:"start_time"`
+	StartTime timeutil.APITime `gorm:"not null;index:time_entry_identity_unique,unique" json:"start_time"`
 
 	// EndTime is the date and time when the period ended
-	EndTime time.Time `gorm:"not null;index:time_entry_identity_unique,unique" json:"end_time"`
+	EndTime timeutil.APITime `gorm:"not null;index:time_entry_identity_unique,unique" json:"end_time"`
 
 	// Duration is the amount of time between the start and end time
 	Duration time.Duration `gorm:"not null" json:"duration"`
@@ -37,7 +38,7 @@ type TimeEntry struct {
 
 // Duration of the time entry
 func (e TimeEntry) ComputeDuration() time.Duration {
-	return e.EndTime.Sub(e.StartTime)
+	return e.EndTime.Sub(e.StartTime.Time)
 }
 
 // IdentityFields returns a tuple of the StartTime, EndTime, and Comment fields. These fields define what makes a time entry unique.
@@ -59,12 +60,6 @@ func (e TimeEntry) ComputeIdentityHash() (string, error) {
 	return fmt.Sprintf("%d", hash), nil
 }
 
-// RoundTimesToDB takes all times in a TimeEntry and trims them to millisecond level resolution. This is because Golang supports nanosecond precision by Postgres only supports millisecond precision.
-func (e *TimeEntry) RoundTimesToDB() {
-	e.StartTime = e.StartTime.Round(time.Millisecond)
-	e.EndTime = e.EndTime.Round(time.Millisecond)
-}
-
 // TimeEntryRepo are functions to query and retrieve TimeEntries
 type TimeEntryRepo interface {
 	// List time entries sorted earliest to latest
@@ -77,10 +72,10 @@ type TimeEntryRepo interface {
 // ListTimeEntriesOpts are options for listing time entries
 type ListTimeEntriesOpts struct {
 	// StartDate indicates only time entries which started after (inclusive) this date should be returned
-	StartDate *time.Time
+	StartDate *timeutil.APITime
 
 	// EndDate indicates only time entries which started before (inclusive) this date should be returned
-	EndDate *time.Time
+	EndDate *timeutil.APITime
 }
 
 // CreateTimeEntriesRes is a create time entry result
@@ -101,18 +96,22 @@ type DBTimeEntryRepo struct {
 	logger *zap.Logger
 }
 
+func makeDateOnlyTime(in time.Time) time.Time {
+	return time.Date(in.Year(), in.Month(), in.Day(), 0, 0, 0, 0, in.Location())
+}
+
 func (r DBTimeEntryRepo) List(opts ListTimeEntriesOpts) ([]TimeEntry, error) {
 	// Base query
 	var timeEntries []TimeEntry
 	queryTx := r.db.Order("start_time ASC")
 
 	// Filter options
-	if opts.StartDate != nil {
-		queryTx.Or("start_time >= ?", time.Date(opts.StartDate.Year(), opts.StartDate.Month(), opts.StartDate.Day(), 0, 0, 0, 0, opts.StartDate.Location()))
-	}
-
-	if opts.EndDate != nil {
-		queryTx.Or("start_time <= ?", time.Date(opts.EndDate.Year(), opts.EndDate.Month(), opts.EndDate.Day(), 0, 0, 0, 0, opts.EndDate.Location()))
+	if opts.StartDate != nil && opts.EndDate != nil {
+		queryTx.Where("start_time >= ? AND start_time <= ?", opts.StartDate.MakeDateOnly(), opts.EndDate.MakeDateOnly())
+	} else if opts.StartDate != nil {
+		queryTx.Or("start_time >= ?", opts.StartDate.MakeDateOnly())
+	} else if opts.EndDate != nil {
+		queryTx.Or("start_time <= ?", opts.EndDate.MakeDateOnly())
 	}
 
 	// Run query
@@ -125,12 +124,6 @@ func (r DBTimeEntryRepo) List(opts ListTimeEntriesOpts) ([]TimeEntry, error) {
 }
 
 func (r DBTimeEntryRepo) Create(csvImport CSVImport, timeEntries []TimeEntry) (*CreateTimeEntriesRes, error) {
-	// Ensure all times are rounded
-	for entryI, entry := range timeEntries {
-		entry.RoundTimesToDB()
-		timeEntries[entryI] = entry
-	}
-
 	// Find existing entries
 	var existingEntries []TimeEntry
 	existingEntriesWhereTuple := [][]interface{}{}
@@ -149,8 +142,6 @@ func (r DBTimeEntryRepo) Create(csvImport CSVImport, timeEntries []TimeEntry) (*
 		if err != nil {
 			return nil, fmt.Errorf("failed to compute identity hash of time entry with ID '%d': %s", entry.ID, err)
 		}
-
-		r.logger.Debug("existing time entry", zap.String("hash", hash))
 
 		existingEntriesHashes[hash] = nil
 	}
@@ -263,53 +254,57 @@ func (r CSVTimeEntryParser) Parse(csvIn io.Reader) ([]TimeEntry, error) {
 	for rowI, row := range rows {
 		// Parse date times
 		startTimeStr := fmt.Sprintf("%s %s", row[headerMap[r.columnStartTime]], r.timezone)
-		startTime, err := time.Parse(CSVInputTimeFormat, startTimeStr)
+		startTime, err := timeutil.ParseFormat(CSVInputTimeFormat, startTimeStr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse start time '%s' in row %d: %s", startTimeStr, rowI, err)
 		}
 
 		endTimeStr := fmt.Sprintf("%s %s", row[headerMap[r.columnEndTime]], r.timezone)
-		endTime, err := time.Parse(CSVInputTimeFormat, endTimeStr)
+		endTime, err := timeutil.ParseFormat(CSVInputTimeFormat, endTimeStr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse end time '%s' in row %d: %s", endTimeStr, rowI, err)
 		}
 
 		entries := []TimeEntry{
 			{
-				StartTime: startTime,
-				EndTime:   endTime,
+				StartTime: *startTime,
+				EndTime:   *endTime,
 				Comment:   row[headerMap[r.columnComment]],
 			},
 		}
-		entries[0].RoundTimesToDB()
 
 		// Check if time passes over day boundary
 		if startTime.Day() != endTime.Day() || startTime.Month() != endTime.Month() || startTime.Year() != endTime.Year() {
-			// Use rounded times
-			startTime = entries[0].StartTime
-			endTime = entries[0].EndTime
-
 			// Make two entries, one that goes from the start time to the end of the day, and another which goes from midnight the following day to the following end time
-			totalDuration := endTime.Sub(startTime)
+			totalDuration := endTime.Sub(startTime.Time)
 
 			// Start day entry goes from original start time to end of the day
-			endOfStartDay := time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 23, 59, 59, 999999999, startTime.Location())
-			startDayDuration := endOfStartDay.Sub(endOfStartDay)
+			endOfStartDay, err := timeutil.NewAPITime(time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 23, 59, 59, 999999999, startTime.Time.Location()))
+			if err != nil {
+				return nil, fmt.Errorf("failed to make end of first day APITime: %s", err)
+			}
+			startDayDuration := endOfStartDay.Sub(endOfStartDay.Time)
 
 			// End day entry goes from midnight of the following day to whatever duration is needed to reach the original duration
-			startOfEndDay := time.Date(endTime.Year(), endTime.Month(), endTime.Day(), 0, 0, 0, 0, endTime.Location())
+			startOfEndDay, err := timeutil.NewAPITime(time.Date(endTime.Year(), endTime.Month(), endTime.Day(), 0, 0, 0, 0, endTime.Location()))
+			if err != nil {
+				return nil, fmt.Errorf("failed to make start of second day APITime: %s", err)
+			}
 			endDayDuration := totalDuration - startDayDuration
-			endOfEndDay := startOfEndDay.Add(endDayDuration)
+			endOfEndDay, err := timeutil.NewAPITime(startOfEndDay.Add(endDayDuration))
+			if err != nil {
+				return nil, fmt.Errorf("failed to make end of second day APITime: %s", err)
+			}
 
 			entries = []TimeEntry{
 				{
-					StartTime: startTime,
-					EndTime:   endOfStartDay,
+					StartTime: *startTime,
+					EndTime:   *endOfStartDay,
 					Comment:   row[headerMap[r.columnComment]],
 				},
 				{
-					StartTime: startOfEndDay,
-					EndTime:   endOfEndDay,
+					StartTime: *startOfEndDay,
+					EndTime:   *endOfEndDay,
 					Comment:   row[headerMap[r.columnComment]],
 				},
 			}

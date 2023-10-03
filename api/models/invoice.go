@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Noah-Huppert/time-tracker/api/timeutil"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -20,10 +21,10 @@ type Invoice struct {
 	InvoiceSettingsID uint `gorm:"not null" json:"invoice_settings_id"`
 
 	// StartDate is the date on which the invoice time entries start
-	StartDate time.Time `gorm:"not null" json:"start_date"`
+	StartDate timeutil.APITime `gorm:"not null" json:"start_date"`
 
 	// EndDate is the date on which the invoice time entries ended
-	EndDate time.Time `gorm:"not null" json:"end_date"`
+	EndDate timeutil.APITime `gorm:"not null" json:"end_date"`
 
 	// Duration of time of time entries in invoice
 	Duration time.Duration `gorm:"not null" json:"duration"`
@@ -32,10 +33,10 @@ type Invoice struct {
 	AmountDue float64 `gorm:"not null" json:"amount_due"`
 
 	// SentToClient if not null the invoice has been sent to a client on that date
-	SentToClient *time.Time `json:"sent_to_client"`
+	SentToClient *timeutil.APITime `json:"sent_to_client"`
 
 	// PaidByClient if not null the invoice was paid by the client on that date
-	PaidByClient *time.Time `json:"paid_by_client"`
+	PaidByClient *timeutil.APITime `json:"paid_by_client"`
 
 	// Archived is used to soft delete invoices
 	Archived bool `gorm:"not null" json:"archived"`
@@ -83,10 +84,10 @@ type CreateInvoiceOpts struct {
 	InvoiceSettings InvoiceSettings
 
 	// StartDate of invoice
-	StartDate time.Time
+	StartDate timeutil.APITime
 
 	// EndDate of invoice
-	EndDate time.Time
+	EndDate timeutil.APITime
 
 	// TimeEntries for invoice
 	TimeEntries []TimeEntry
@@ -115,11 +116,14 @@ type UpdateInvoiceOpts struct {
 	// ID of the invoice to update
 	ID uint
 
-	// SentToClient if provided updates the SentToClient field
-	SentToClient *time.Time
+	// SentToClient updates the SentToClient field
+	SentToClient *timeutil.APITime
 
-	// PaidByClient if provided updates the PaidByClient field
-	PaidByClient *time.Time
+	// PaidByClient updates the PaidByClient field
+	PaidByClient *timeutil.APITime
+
+	// Archived updates the
+	Archived bool
 }
 
 // DBInvoiceRepo implements a InvoiceRepo using a database client
@@ -142,6 +146,7 @@ func (r DBInvoiceRepo) Create(opts CreateInvoiceOpts) (*CreateInvoiceRes, error)
 	amountDue := duration.Hours() * opts.InvoiceSettings.HourlyRate
 
 	// Create invoice
+	r.logger.Debug("create invoice", zap.Any("start date", opts.StartDate), zap.Any("end date", opts.EndDate))
 	invoice := Invoice{
 		InvoiceSettingsID: opts.InvoiceSettings.ID,
 		StartDate:         opts.StartDate,
@@ -163,10 +168,15 @@ func (r DBInvoiceRepo) Create(opts CreateInvoiceOpts) (*CreateInvoiceRes, error)
 			TimeEntryID: entry.ID,
 		})
 	}
-	if res := r.db.Create(&invoiceTimeEntries); res.Error != nil {
-		return nil, fmt.Errorf("failed to run create invoice time entries query: %s", res.Error)
+	if len(invoiceTimeEntries) > 0 {
+		if res := r.db.Create(&invoiceTimeEntries); res.Error != nil {
+			return nil, fmt.Errorf("failed to run create invoice time entries query: %s", res.Error)
+		}
+		invoice.InvoiceTimeEntries = invoiceTimeEntries
+	} else {
+		invoice.InvoiceTimeEntries = []InvoiceTimeEntry{}
 	}
-	invoice.InvoiceTimeEntries = invoiceTimeEntries
+
 	invoice.InvoiceSettings = opts.InvoiceSettings
 
 	return &CreateInvoiceRes{
@@ -212,6 +222,7 @@ func (r DBInvoiceRepo) Update(opts UpdateInvoiceOpts) (*Invoice, error) {
 	updates := map[string]interface{}{}
 	updates["sent_to_client"] = opts.SentToClient
 	updates["paid_by_client"] = opts.PaidByClient
+	updates["archived"] = opts.Archived
 
 	if res := r.db.Model(&invoice).Updates(updates); res.Error != nil {
 		return nil, fmt.Errorf("failed to run update query: %s", res.Error)
