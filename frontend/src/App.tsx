@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createHashRouter, RouterProvider } from "react-router-dom";
 import { PageTimeEntries } from "./pages/TimeEntries/TimeEntries";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -22,7 +22,7 @@ const theme = createTheme({
   },
 });
 
-const router = createBrowserRouter([
+const router = createHashRouter([
   {
     path: ROUTES.home.pattern,
     element: <PageHome />,

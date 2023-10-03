@@ -1,0 +1,37 @@
+.view-invoice-table {
+  font-size: 0.875rem;
+
+  table {
+    border-spacing: 0;
+  }
+
+  td, td {
+    border-right: 1px solid black;
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+  }
+
+  td {
+    border-left: none;
+  }
+
+  th:first-child, td:first-child {
+    border-left: 1px solid black !important;
+  }
+
+  th, td {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  th {
+    background: #616161;
+    color: white;
+    border: none;
+    border-block-width: 0;
+    border-block-start-color: #616161;
+    border-block-end-color: #616161;
+  }
+}

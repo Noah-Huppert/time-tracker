@@ -32,6 +32,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import dayjs from "dayjs";
 import dayjsDuration from "dayjs/plugin/duration";
 import {
+  DATE_FORMAT,
   DATE_TIME_FORMAT,
   DURATION_FORMAT,
   nanosecondsToDuration,
@@ -42,7 +43,8 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CancelIcon from '@mui/icons-material/Cancel';
 import { DatePicker } from "@mui/x-date-pickers";
 import { ToastCtx } from "../../components/Toast/Toast";
-import { Draw } from "@mui/icons-material";
+
+import "./ViewInvoice.scss";
 
 dayjs.extend(dayjsDuration);
 
@@ -74,9 +76,11 @@ export const PageViewInvoice = () => {
   const [metadataDrawerOpen, setMetadataDrawerOpen] = useState(false);
 
   const ref = useRef(null);
-  const onPrint = useReactToPrint({
+  const onPrint = useCallback(useReactToPrint({
     content: () => ref.current,
-  });
+    documentTitle: invoice !== "loading" && invoice !== "error" ? `Invoice-${dayjs(invoice.start_date).format(DATE_FORMAT)}-${dayjs(invoice.end_date).format(DATE_FORMAT)}` : "Invoice",
+    copyStyles: true,
+  }), [invoice]);
 
   const fetchInvoice = useCallback(async (invoiceID: number) => {
     setInvoice("loading");
@@ -306,10 +310,12 @@ export const MetadataDrawer = ({
   )
 }
 
-export const Invoice = forwardRef(({ invoice }: {
-  readonly invoice: InvoiceSchemaType | "loading" | "error"
-}, ref) => {
-  
+export const Invoice = forwardRef<
+  HTMLDivElement,
+  {
+    readonly invoice: InvoiceSchemaType | "loading" | "error"
+  }
+>(({ invoice }, ref) => {
 
   if (invoice === "loading") {
     return (
@@ -330,11 +336,11 @@ export const Invoice = forwardRef(({ invoice }: {
   }
 
   return (
-      <Box
+      <div
         ref={ref}
-        sx={{
+        style={{
           width: "200mm",
-          padding: "10mm",
+          padding: "20mm",
         }}
       >
         <InvoiceHeader
@@ -364,7 +370,7 @@ export const Invoice = forwardRef(({ invoice }: {
         >
           <TimeEntriesTable timeEntries={invoice.invoice_time_entries} />
         </Box>
-      </Box>
+      </div>
   );
 });
 
@@ -469,46 +475,67 @@ const SummaryTable = ({
   return (
     <>
       Owed:
-      <TableContainer component={Box}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <HeaderTableCell width={TABLE_COL_WIDTHS[0]}>
+      <div  className="view-invoice-table">
+        <table
+          style={{
+            width: "100%",
+            textAlign: "left",
+          }}
+        >
+          <thead>
+            <tr>
+              <th
+                style={{
+                  width: `${TABLE_COL_WIDTHS[0]}px`,
+                }}
+              >
                 Period Start
-              </HeaderTableCell>
+              </th>
 
-              <HeaderTableCell width={TABLE_COL_WIDTHS[1]}>
+              <th
+                style={{
+                  width: `${TABLE_COL_WIDTHS[1]}px`,
+                }}
+              >
                 Period End
-              </HeaderTableCell>
+              </th>
 
-              <HeaderTableCell width={TABLE_COL_WIDTHS[2]}>
+              <th
+                style={{
+                  width: `${TABLE_COL_WIDTHS[2]}px`,
+                }}
+              >
                 Duration
-              </HeaderTableCell>
+              </th>
 
-              <HeaderTableCell width={TABLE_COL_WIDTHS[3]}>
+              <th
+                style={{
+                  width: `${TABLE_COL_WIDTHS[3]}px`,
+                }}
+              >
                 Amount Due
-              </HeaderTableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            <TableRow>
-              <BorderedTableCell>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
                 {dayjs(periodStart).format(DATE_TIME_FORMAT)}
-              </BorderedTableCell>
+              </td>
 
-              <BorderedTableCell>
+              <td>
                 {dayjs(periodEnd).format(DATE_TIME_FORMAT)}
-              </BorderedTableCell>
+              </td>
 
-              <BorderedTableCell>
+              <td>
                 {nanosecondsToDuration(totalDuration).format(DURATION_FORMAT)}
-              </BorderedTableCell>
+              </td>
 
-              <BorderedTableCell>${amountDue.toFixed(2)}</BorderedTableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </TableContainer>
+              <td>${amountDue.toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </>
   );
 };
@@ -521,54 +548,70 @@ const TimeEntriesTable = ({
   return (
     <>
       Timesheet:
-      <TableContainer component={Box}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <HeaderTableCell width={TABLE_COL_WIDTHS[0]}>
+      <div className="view-invoice-table">
+        <table>
+          <thead>
+            <tr>
+              <th
+                style={{
+                  width: `${TABLE_COL_WIDTHS[0]}px`,
+                }}
+              >
                 Time Started
-              </HeaderTableCell>
+              </th>
 
-              <HeaderTableCell width={TABLE_COL_WIDTHS[1]}>
+              <th
+                style={{
+                  width: `${TABLE_COL_WIDTHS[1]}px`,
+                }}
+              >
                 Time Ended
-              </HeaderTableCell>
+              </th>
 
-              <HeaderTableCell width={TABLE_COL_WIDTHS[2]}>
+              <th
+                style={{
+                  width: `${TABLE_COL_WIDTHS[2]}px`,
+                }}
+              >
                 Duration
-              </HeaderTableCell>
+              </th>
 
-              <HeaderTableCell width={TABLE_COL_WIDTHS[3]}>
+              <th
+                style={{
+                  width: `${TABLE_COL_WIDTHS[3]}px`,
+                }}
+              >
                 Comment
-              </HeaderTableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
             {timeEntries.map((timeEntry) => (
-              <TableRow key={`invoice-timesheet-${timeEntry.id}`}>
-                <BorderedTableCell>
+              <tr key={`invoice-timesheet-${timeEntry.id}`}>
+                <td>
                   {dayjs(timeEntry.time_entry.start_time).format(DATE_TIME_FORMAT)}
-                </BorderedTableCell>
+                </td>
 
-                <BorderedTableCell>
+                <td>
                   {dayjs(timeEntry.time_entry.end_time).format(DATE_TIME_FORMAT)}
-                </BorderedTableCell>
+                </td>
 
-                <BorderedTableCell>
+                <td>
                   {nanosecondsToDuration(timeEntry.time_entry.duration).format(
                     DURATION_FORMAT,
                   )}
-                </BorderedTableCell>
+                </td>
 
-                <BorderedTableCell>
+                <td>
                   {timeEntry.time_entry.comment.length > 0
                     ? timeEntry.time_entry.comment
                     : "\u00A0"}
-                </BorderedTableCell>
-              </TableRow>
+                </td>
+              </tr>
             ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </tbody>
+        </table>
+      </div>
     </>
   );
 };

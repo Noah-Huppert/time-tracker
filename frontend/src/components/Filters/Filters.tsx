@@ -1,5 +1,5 @@
 import { Box, Button, Chip, Popover } from "@mui/material";
-import React, { useState } from "react";
+import { useState } from "react";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 
 /**

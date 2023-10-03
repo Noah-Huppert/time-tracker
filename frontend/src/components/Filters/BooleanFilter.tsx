@@ -4,7 +4,6 @@ export const BooleanFilter = ({
   name,
   value,
   setValue,
-  hide,
 }: {
   readonly name: string;
   readonly value: boolean | null;
