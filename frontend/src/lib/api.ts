@@ -62,6 +62,11 @@ export type CSVFile = {
   readonly content: string;
 };
 
+export type UpdateInvoiceOpts = {
+  readonly sentToClient?: Date
+  readonly paidByClient?: Date
+}
+
 const BASE_URL = "http://localhost:4000/api/v0/";
 
 async function makeReq<T>({
@@ -227,5 +232,21 @@ export const api = {
           end_date: endDate.toISOString(),
         },
       }),
+
+    update: ({
+      id,
+      sentToClient,
+      paidByClient,
+    }: {
+      readonly id: number; 
+    } & UpdateInvoiceOpts) => makeReq({
+      path: `invoices/${id}/`,
+      method: "PATCH",
+      shape: invoiceSchema,
+      body: {
+        sent_to_client: sentToClient,
+        paid_by_client: paidByClient,
+      },
+    }),
   },
 };

@@ -71,6 +71,7 @@ func (s Server) Listen(ctxPair gointerrupt.CtxPair, addr string) error {
 
 	app.Get("/api/v0/invoices/", s.EPInvoiceList)
 	app.Post("/api/v0/invoices/", s.EPInvoiceCreate)
+	app.Patch("/api/v0/invoices/:id/", s.EPInvoiceUpdate)
 
 	// Setup server graceful shutdown
 	shutdownErr := make(chan error, 1)
@@ -438,4 +439,36 @@ type EPInvoiceCreateReq struct {
 
 	// EndDate of period of performance for invoice
 	EndDate time.Time `json:"end_date"`
+}
+
+func (s Server) EPInvoiceUpdate(c *fiber.Ctx) error {
+	// Get ID from URL
+	id, err := c.ParamsInt("id")
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("failed to get ID URL parameter: %s", err))
+	}
+
+	// Parse body
+	var body EPInvoiceUpdateReq
+	if err := s.parseBody(c, &body); err != nil {
+		return err
+	}
+
+	// Make update
+	invoice, err := s.repos.Invoice.Update(models.UpdateInvoiceOpts{
+		ID:           uint(id),
+		SentToClient: body.SentToClient,
+		PaidByClient: body.PaidByClient,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update invoice: %s", err)
+	}
+
+	return c.JSON(invoice)
+}
+
+// EPInvoiceUpdateReq is the request body for the update invoice endpoint
+type EPInvoiceUpdateReq struct {
+	SentToClient *time.Time `json:"sent_to_client"`
+	PaidByClient *time.Time `json:"paid_by_client"`
 }

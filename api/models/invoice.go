@@ -202,20 +202,21 @@ func (r DBInvoiceRepo) Update(opts UpdateInvoiceOpts) (*Invoice, error) {
 	}
 
 	// Get invoice
-	var invoice Invoice
-	if res := r.db.Where("id = ?", opts.ID).Find(&invoice); res.Error != nil {
-		return nil, fmt.Errorf("failed to run find invoice query: %s", res.Error)
+	invoices, err := r.List(ListInvoicesOpts{
+		IDs: []uint64{uint64(opts.ID)},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list invoice: %s", err)
 	}
+	if len(invoices) == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+	invoice := invoices[0]
 
 	// Perform updates
 	updates := map[string]interface{}{}
-	if opts.SentToClient != nil {
-		updates["sent_to_client"] = *opts.SentToClient
-	}
-
-	if opts.PaidByClient != nil {
-		updates["paid_by_client"] = *opts.PaidByClient
-	}
+	updates["sent_to_client"] = opts.SentToClient
+	updates["paid_by_client"] = opts.PaidByClient
 
 	if res := r.db.Model(&invoice).Updates(updates); res.Error != nil {
 		return nil, fmt.Errorf("failed to run update query: %s", res.Error)

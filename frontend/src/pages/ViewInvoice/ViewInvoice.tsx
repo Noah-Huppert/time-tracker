@@ -14,11 +14,16 @@ import {
   AppBar,
   Container,
   Toolbar,
+  Drawer,
+  IconButton,
 } from "@mui/material";
-import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
+import { forwardRef, useCallback, useContext, useEffect, useRef, useState } from "react";
+
+import SettingsIcon from "@mui/icons-material/Settings";
 import {
   InvoiceSchemaType,
   InvoiceTimeEntrySchemaType,
+  UpdateInvoiceOpts,
   api,
 } from "../../lib/api";
 import { isLeft } from "fp-ts/lib/Either";
@@ -34,6 +39,10 @@ import {
 import { useReactToPrint } from "react-to-print";
 import PrintIcon from "@mui/icons-material/Print";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CancelIcon from '@mui/icons-material/Cancel';
+import { DatePicker } from "@mui/x-date-pickers";
+import { ToastCtx } from "../../components/Toast/Toast";
+import { Draw } from "@mui/icons-material";
 
 dayjs.extend(dayjsDuration);
 
@@ -53,15 +62,77 @@ const HeaderTableCell = styled(BorderedTableCell)(({ theme }) => ({
 const TABLE_COL_WIDTHS = [150, 150, 50, 300];
 
 export const PageViewInvoice = () => {
+
+  const navigate = useNavigate();
+  const toast = useContext(ToastCtx);
+  const { id: invoiceIDStr } = useParams();
+  const invoiceID = Number(invoiceIDStr);
+
+  const [invoice, setInvoice] = useState<
+    InvoiceSchemaType | "loading" | "error"
+  >("loading");
+  const [metadataDrawerOpen, setMetadataDrawerOpen] = useState(false);
+
   const ref = useRef(null);
   const onPrint = useReactToPrint({
     content: () => ref.current,
   });
 
-  const navigate = useNavigate();
+  const fetchInvoice = useCallback(async (invoiceID: number) => {
+    setInvoice("loading");
+
+    const res = await api.invoices.list({
+      ids: [invoiceID],
+    });
+    if (isLeft(res)) {
+      setInvoice("error");
+      return;
+    }
+
+    setInvoice(res.right[0]);
+  }, []);
+
+  const onUpdateInvoice = useCallback(async ({
+    sentToClient,
+    paidByClient,
+  }: UpdateInvoiceOpts) => {
+    const res = await api.invoices.update({
+      id: invoiceID,
+      sentToClient,
+      paidByClient,
+    });
+    if (isLeft(res)) {
+      toast({
+        kind: "error",
+        message: "Failed to update invoice",
+      });
+      return;
+    }
+
+    toast({
+      kind: "success",
+      message: "Updated invoice"
+    })
+    await fetchInvoice(invoiceID);
+  }, [fetchInvoice])
+
+  useEffect(() => {
+    if (invoiceID === undefined) {
+      setInvoice("error");
+      return;
+    }
+
+    fetchInvoice(invoiceID);
+  }, [invoiceID, fetchInvoice]);
 
   return (
-    <>
+    <Box
+    sx={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+    }}
+    >
       <AppBar component="nav" position="static">
         <Container>
           <Toolbar
@@ -82,49 +153,164 @@ export const PageViewInvoice = () => {
 
             <Typography variant="h5">Invoice</Typography>
 
-            <Button
-              startIcon={<PrintIcon />}
-              variant="contained"
-              onClick={onPrint}
-              color="secondary"
-            >
-              Print
-            </Button>
+            <Box>
+              <Button
+                onClick={() => setMetadataDrawerOpen(true)}
+                startIcon={<SettingsIcon />}
+                sx={{
+                  marginRight: "1rem",
+                }}
+                variant="contained"
+                color="secondary"
+              >
+                Metadata
+              </Button>
+
+              <Button
+                startIcon={<PrintIcon />}
+                variant="contained"
+                onClick={onPrint}
+                color="secondary"
+              >
+                Print
+              </Button>
+            </Box>
           </Toolbar>
         </Container>
       </AppBar>
 
-      <Invoice ref={ref} />
-    </>
+      {invoice === "loading" || invoice === "error" ? null : (
+        <MetadataDrawer
+          open={metadataDrawerOpen}
+          setOpen={setMetadataDrawerOpen}
+          invoice={invoice}
+          onUpdateInvoice={onUpdateInvoice}
+        />
+      )}
+
+      <Invoice
+        ref={ref}
+        invoice={invoice}
+      />
+    </Box>
   );
 };
 
-export const Invoice = forwardRef((props, ref) => {
-  const [invoice, setInvoice] = useState<
-    InvoiceSchemaType | "loading" | "error"
-  >("loading");
-  const { id: invoiceID } = useParams();
+export const MetadataDrawer = ({
+  open,
+  setOpen,
+  invoice,
+  onUpdateInvoice,
+}: {
+  readonly open: boolean
+  readonly setOpen: (open: boolean) => void
+  readonly invoice: InvoiceSchemaType
+  readonly onUpdateInvoice: (opts: UpdateInvoiceOpts) => Promise<void>
+}) => {
+  const [draftSentToClient, setDraftSentToClient] = useState<Date | null>(invoice.sent_to_client)
+  const [draftPaidByClient, setDraftPaidByClient] = useState<Date | null>(invoice.paid_by_client);
 
-  const fetchInvoice = useCallback(async (invoiceID: number) => {
-    const res = await api.invoices.list({
-      ids: [invoiceID],
-    });
-    if (isLeft(res)) {
-      setInvoice("error");
-      return;
-    }
+  return (
+    <Drawer
+      open={open}
+      onClose={() => setOpen(false)}
+      anchor="right"
+    >
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          padding: "1rem",
+        }}
+      >
+        <Typography variant="h5">Metadata</Typography>
 
-    setInvoice(res.right[0]);
-  }, []);
+        <Table>
+          <TableBody>
+            <TableRow>
+              <TableCell>
+                <b>Sent To Client</b>
+              </TableCell>
 
-  useEffect(() => {
-    if (invoiceID === undefined) {
-      setInvoice("error");
-      return;
-    }
+              <TableCell
+                sx={{
+                  display: "flex",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                }}
+              >
+                <DatePicker<dayjs.Dayjs>
+                  value={draftSentToClient !== null ? dayjs(draftSentToClient) : null}
+                  onChange={(d) => {
+                    console.log("set", d, d?.toDate());
+                    setDraftSentToClient(d?.toDate() || null)
+                  }}
+                />
+                <IconButton
+                  onClick={() => setDraftSentToClient(null)}
+                >
+                  <CancelIcon />
+                </IconButton>
+              </TableCell>
+            </TableRow>
 
-    fetchInvoice(Number(invoiceID));
-  }, [invoiceID, fetchInvoice]);
+            <TableRow>
+              <TableCell>
+                <b>Paid By Client</b>
+              </TableCell>
+
+              <TableCell
+                sx={{
+                  display: "flex",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                }}
+              >
+                <DatePicker<dayjs.Dayjs>
+                  value={draftPaidByClient !== null ? dayjs(draftPaidByClient) : null}
+                  onChange={(d) => setDraftPaidByClient(d?.toDate() || null)}
+                />
+                <IconButton
+                  onClick={() => setDraftPaidByClient(null)}
+                >
+                  <CancelIcon />
+                </IconButton>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+
+        <Box
+          sx={{
+            marginTop: "1rem",
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "flex-end",
+          }}
+        >
+          <Button
+            disabled={draftSentToClient === null && draftPaidByClient === null}
+            onClick={() => onUpdateInvoice({
+              sentToClient: draftSentToClient || undefined,
+              paidByClient: draftPaidByClient || undefined,
+            })}
+            sx={{
+              display: "flex",
+              marginLeft: "auto",
+            }}
+          >
+            Save
+          </Button>
+        </Box>
+      </Box>
+    </Drawer>
+  )
+}
+
+export const Invoice = forwardRef(({ invoice }: {
+  readonly invoice: InvoiceSchemaType | "loading" | "error"
+}, ref) => {
+  
 
   if (invoice === "loading") {
     return (
@@ -145,15 +331,8 @@ export const Invoice = forwardRef((props, ref) => {
   }
 
   return (
-    <Box
-      ref={ref}
-      sx={{
-        display: "flex",
-        flexDirection: "row",
-        justifyContent: "center",
-      }}
-    >
       <Box
+        ref={ref}
         sx={{
           width: "200mm",
           padding: "10mm",
@@ -187,7 +366,6 @@ export const Invoice = forwardRef((props, ref) => {
           <TimeEntriesTable timeEntries={invoice.invoice_time_entries} />
         </Box>
       </Box>
-    </Box>
   );
 });
 
