@@ -48,19 +48,6 @@ import "./ViewInvoice.scss";
 
 dayjs.extend(dayjsDuration);
 
-const BorderedTableCell = styled(TableCell)(({ theme }) => ({
-  [`&.${tableCellClasses.root}`]: {
-    border: `1px solid ${theme.palette.common.black}`,
-  },
-}));
-
-const HeaderTableCell = styled(BorderedTableCell)(({ theme }) => ({
-  [`&.${tableCellClasses.head}`]: {
-    backgroundColor: theme.palette.grey[700],
-    color: theme.palette.common.white,
-  },
-}));
-
 const TABLE_COL_WIDTHS = [150, 150, 50, 300];
 
 export const PageViewInvoice = () => {
@@ -131,13 +118,19 @@ export const PageViewInvoice = () => {
 
   return (
     <Box
-    sx={{
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-    }}
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+      }}
     >
-      <AppBar component="nav" position="static">
+      <AppBar
+        component="nav"
+        position="static"
+        sx={{
+          marginBottom: "2rem",
+        }}
+      >
         <Container>
           <Toolbar
             sx={{
@@ -338,9 +331,11 @@ export const Invoice = forwardRef<
   return (
       <div
         ref={ref}
+        className="view-invoice-table"
         style={{
           width: "200mm",
           padding: "20mm",
+          paddingTop: 0,
         }}
       >
         <InvoiceHeader
@@ -475,13 +470,8 @@ const SummaryTable = ({
   return (
     <>
       Owed:
-      <div  className="view-invoice-table">
-        <table
-          style={{
-            width: "100%",
-            textAlign: "left",
-          }}
-        >
+      <div>
+        <table>
           <thead>
             <tr>
               <th
@@ -548,7 +538,7 @@ const TimeEntriesTable = ({
   return (
     <>
       Timesheet:
-      <div className="view-invoice-table">
+      <div>
         <table>
           <thead>
             <tr>
