@@ -196,11 +196,6 @@ func (r DBInvoiceRepo) List(opts ListInvoicesOpts) ([]Invoice, error) {
 }
 
 func (r DBInvoiceRepo) Update(opts UpdateInvoiceOpts) (*Invoice, error) {
-	// Check any updates will be made
-	if opts.SentToClient == nil && opts.PaidByClient == nil {
-		return nil, fmt.Errorf("at least one update of SentToClient or PaidByClient must be specified")
-	}
-
 	// Get invoice
 	invoices, err := r.List(ListInvoicesOpts{
 		IDs: []uint64{uint64(opts.ID)},

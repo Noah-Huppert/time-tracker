@@ -289,10 +289,9 @@ export const MetadataDrawer = ({
           }}
         >
           <Button
-            disabled={draftSentToClient === null && draftPaidByClient === null}
             onClick={() => onUpdateInvoice({
-              sentToClient: draftSentToClient || undefined,
-              paidByClient: draftPaidByClient || undefined,
+              sentToClient: draftSentToClient,
+              paidByClient: draftPaidByClient,
             })}
             sx={{
               display: "flex",

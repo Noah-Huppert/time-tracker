@@ -63,8 +63,8 @@ export type CSVFile = {
 };
 
 export type UpdateInvoiceOpts = {
-  readonly sentToClient?: Date
-  readonly paidByClient?: Date
+  readonly sentToClient: Date | null
+  readonly paidByClient: Date  | null
 }
 
 const BASE_URL = "http://localhost:4000/api/v0/";
