@@ -1,5 +1,11 @@
 import { z } from "zod";
 import { Either, left, right } from "fp-ts/lib/Either";
+import dayjsUTC from "dayjs/plugin/utc";
+import dayjsTz from "dayjs/plugin/timezone";
+import dayjs from "dayjs";
+
+dayjs.extend(dayjsUTC);
+dayjs.extend(dayjsTz);
 
 const timeEntrySchema = z.object({
   id: z.number(),
@@ -152,8 +158,8 @@ export const api = {
         method: "GET",
         shape: listTimeEntriesSchema,
         queryParams: {
-          start_date: startDate?.toISOString(),
-          end_date: endDate?.toISOString(),
+          start_date: startDate !== null ? dayjs(startDate).tz("UTC").toISOString() : null,
+          end_date: endDate !== null ? dayjs(endDate).tz("UTC").toISOString() : null,
         },
       }),
 
@@ -230,8 +236,8 @@ export const api = {
         shape: invoiceSchema,
         body: {
           invoice_settings_id: invoiceSettingsID,
-          start_date: startDate.toISOString(),
-          end_date: endDate.toISOString(),
+          start_date: dayjs(startDate).utc().toISOString(),
+          end_date: dayjs(endDate).utc().toISOString(),
         },
       }),
 
@@ -247,8 +253,8 @@ export const api = {
       method: "PATCH",
       shape: invoiceSchema,
       body: {
-        sent_to_client: sentToClient,
-        paid_by_client: paidByClient,
+        sent_to_client: sentToClient !== null ? dayjs(sentToClient).utc().toISOString() : null,
+        paid_by_client: paidByClient !== null ? dayjs(paidByClient).utc().toISOString() : null,
         archived,
       },
     }),

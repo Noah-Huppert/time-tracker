@@ -108,10 +108,29 @@ export const PageTimeEntries = () => {
       return;
     }
 
+    const startDateOpt = filters.startDate;
+    startDateOpt.setHours(0);
+    startDateOpt.setMinutes(0);
+    startDateOpt.setSeconds(0);
+    startDateOpt.setMilliseconds(0);
+
+    const endDateOpt = filters.endDate;
+    endDateOpt.setHours(23);
+    endDateOpt.setMinutes(59);
+    endDateOpt.setSeconds(59);
+    endDateOpt.setMilliseconds(999);
+
+    console.log("calling create invoice", 
+      {
+        invoiceSettingsID: invoiceSettings.right.id,
+        startDate: startDateOpt,
+        endDate: endDateOpt,
+      }
+    )
     const invoice = await api.invoices.create({
       invoiceSettingsID: invoiceSettings.right.id,
-      startDate: filters.startDate,
-      endDate: filters.endDate,
+      startDate: startDateOpt,
+      endDate: endDateOpt,
     });
     if (isLeft(invoice)) {
       console.error(`Failed to create invoice: ${invoice.left}`);
