@@ -18,10 +18,10 @@ type TimeEntry struct {
 	ID uint `gorm:"primarykey" json:"id"`
 
 	/// StartTime is the date and time when the period started
-	StartTime timeutil.APITime `gorm:"not null;index:time_entry_identity_unique,unique" json:"start_time"`
+	StartTime time.Time `gorm:"not null;index:time_entry_identity_unique,unique" json:"start_time"`
 
 	// EndTime is the date and time when the period ended
-	EndTime timeutil.APITime `gorm:"not null;index:time_entry_identity_unique,unique" json:"end_time"`
+	EndTime time.Time `gorm:"not null;index:time_entry_identity_unique,unique" json:"end_time"`
 
 	// Duration is the amount of time between the start and end time
 	Duration time.Duration `gorm:"not null" json:"duration"`
@@ -38,14 +38,14 @@ type TimeEntry struct {
 
 // Duration of the time entry
 func (e TimeEntry) ComputeDuration() time.Duration {
-	return e.EndTime.Sub(e.StartTime.Time)
+	return e.EndTime.Sub(e.StartTime)
 }
 
 // IdentityFields returns a tuple of the StartTime, EndTime, and Comment fields. These fields define what makes a time entry unique.
 func (e TimeEntry) IdentityFields() []interface{} {
 	return []interface{}{
-		e.StartTime,
-		e.EndTime,
+		e.StartTime.UnixNano(),
+		e.EndTime.UnixNano(),
 		e.Comment,
 	}
 }
@@ -96,10 +96,6 @@ type DBTimeEntryRepo struct {
 	logger *zap.Logger
 }
 
-func makeDateOnlyTime(in time.Time) time.Time {
-	return time.Date(in.Year(), in.Month(), in.Day(), 0, 0, 0, 0, in.Location())
-}
-
 func (r DBTimeEntryRepo) List(opts ListTimeEntriesOpts) ([]TimeEntry, error) {
 	// Base query
 	var timeEntries []TimeEntry
@@ -107,11 +103,11 @@ func (r DBTimeEntryRepo) List(opts ListTimeEntriesOpts) ([]TimeEntry, error) {
 
 	// Filter options
 	if opts.StartDate != nil && opts.EndDate != nil {
-		queryTx.Where("start_time >= ? AND start_time <= ?", opts.StartDate.MakeDateOnly(), opts.EndDate.MakeDateOnly())
+		queryTx.Where("start_time >= ? AND start_time <= ?", opts.StartDate.MakeDateOnly().Time, opts.EndDate.MakeDateOnly().Time)
 	} else if opts.StartDate != nil {
-		queryTx.Or("start_time >= ?", opts.StartDate.MakeDateOnly())
+		queryTx.Or("start_time >= ?", opts.StartDate.MakeDateOnly().Time)
 	} else if opts.EndDate != nil {
-		queryTx.Or("start_time <= ?", opts.EndDate.MakeDateOnly())
+		queryTx.Or("start_time <= ?", opts.EndDate.MakeDateOnly().Time)
 	}
 
 	// Run query
@@ -128,7 +124,11 @@ func (r DBTimeEntryRepo) Create(csvImport CSVImport, timeEntries []TimeEntry) (*
 	var existingEntries []TimeEntry
 	existingEntriesWhereTuple := [][]interface{}{}
 	for _, entry := range timeEntries {
-		existingEntriesWhereTuple = append(existingEntriesWhereTuple, entry.IdentityFields())
+		existingEntriesWhereTuple = append(existingEntriesWhereTuple, []interface{}{
+			entry.StartTime,
+			entry.EndTime,
+			entry.Comment,
+		})
 	}
 
 	res := r.db.Where("(start_time, end_time, comment) IN ?", existingEntriesWhereTuple).Find(&existingEntries)
@@ -138,6 +138,7 @@ func (r DBTimeEntryRepo) Create(csvImport CSVImport, timeEntries []TimeEntry) (*
 
 	existingEntriesHashes := map[string]interface{}{}
 	for _, entry := range existingEntries {
+
 		hash, err := entry.ComputeIdentityHash()
 		if err != nil {
 			return nil, fmt.Errorf("failed to compute identity hash of time entry with ID '%d': %s", entry.ID, err)
@@ -254,21 +255,31 @@ func (r CSVTimeEntryParser) Parse(csvIn io.Reader) ([]TimeEntry, error) {
 	for rowI, row := range rows {
 		// Parse date times
 		startTimeStr := fmt.Sprintf("%s %s", row[headerMap[r.columnStartTime]], r.timezone)
-		startTime, err := timeutil.ParseFormat(CSVInputTimeFormat, startTimeStr)
+		startTime, err := time.Parse(CSVInputTimeFormat, startTimeStr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse start time '%s' in row %d: %s", startTimeStr, rowI, err)
 		}
 
 		endTimeStr := fmt.Sprintf("%s %s", row[headerMap[r.columnEndTime]], r.timezone)
-		endTime, err := timeutil.ParseFormat(CSVInputTimeFormat, endTimeStr)
+		endTime, err := time.Parse(CSVInputTimeFormat, endTimeStr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse end time '%s' in row %d: %s", endTimeStr, rowI, err)
 		}
 
+		dbStartTime, err := timeutil.NewAPITime(startTime)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert start time into APITime: %s", err)
+		}
+
+		dbEndTime, err := timeutil.NewAPITime(endTime)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert end time into APITime: %s", err)
+		}
+
 		entries := []TimeEntry{
 			{
-				StartTime: *startTime,
-				EndTime:   *endTime,
+				StartTime: dbStartTime.Time,
+				EndTime:   dbEndTime.Time,
 				Comment:   row[headerMap[r.columnComment]],
 			},
 		}
@@ -276,10 +287,10 @@ func (r CSVTimeEntryParser) Parse(csvIn io.Reader) ([]TimeEntry, error) {
 		// Check if time passes over day boundary
 		if startTime.Day() != endTime.Day() || startTime.Month() != endTime.Month() || startTime.Year() != endTime.Year() {
 			// Make two entries, one that goes from the start time to the end of the day, and another which goes from midnight the following day to the following end time
-			totalDuration := endTime.Sub(startTime.Time)
+			totalDuration := endTime.Sub(startTime)
 
 			// Start day entry goes from original start time to end of the day
-			endOfStartDay, err := timeutil.NewAPITime(time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 23, 59, 59, 999999999, startTime.Time.Location()))
+			endOfStartDay, err := timeutil.NewAPITime(time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 23, 59, 59, 999999999, startTime.Location()))
 			if err != nil {
 				return nil, fmt.Errorf("failed to make end of first day APITime: %s", err)
 			}
@@ -298,13 +309,13 @@ func (r CSVTimeEntryParser) Parse(csvIn io.Reader) ([]TimeEntry, error) {
 
 			entries = []TimeEntry{
 				{
-					StartTime: *startTime,
-					EndTime:   *endOfStartDay,
+					StartTime: dbStartTime.Time,
+					EndTime:   endOfStartDay.Time,
 					Comment:   row[headerMap[r.columnComment]],
 				},
 				{
-					StartTime: *startOfEndDay,
-					EndTime:   *endOfEndDay,
+					StartTime: startOfEndDay.Time,
+					EndTime:   endOfEndDay.Time,
 					Comment:   row[headerMap[r.columnComment]],
 				},
 			}

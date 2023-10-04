@@ -405,19 +405,12 @@ func (s Server) EPInvoiceCreate(c *fiber.Ctx) error {
 	}
 
 	// Get time entries
-	startDateOpt, err := timeutil.NewAPITime(time.Date(body.StartDate.Year(), body.StartDate.Month(), body.StartDate.Day(), 0, 0, 0, 0, body.StartDate.Location()))
-	if err != nil {
-		return fmt.Errorf("failed to parse start date as APITime: %s", err)
-	}
-
-	endDateOpt, err := timeutil.NewAPITime(time.Date(body.EndDate.Year(), body.EndDate.Month(), body.EndDate.Day(), 23, 59, 59, 999999999, body.EndDate.Location()))
-	if err != nil {
-		return fmt.Errorf("failed to parse end date as APITime: %s", err)
-	}
+	startDateOpt := body.StartDate
+	endDateOpt := body.EndDate
 
 	timeEntries, err := s.repos.TimeEntry.List(models.ListTimeEntriesOpts{
-		StartDate: startDateOpt,
-		EndDate:   endDateOpt,
+		StartDate: &startDateOpt,
+		EndDate:   &endDateOpt,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to find time entries for invoice time period: %s", err)
@@ -426,8 +419,8 @@ func (s Server) EPInvoiceCreate(c *fiber.Ctx) error {
 	// Create invoice
 	res, err := s.repos.Invoice.Create(models.CreateInvoiceOpts{
 		InvoiceSettings: *invoiceSettings,
-		StartDate:       *startDateOpt,
-		EndDate:         *endDateOpt,
+		StartDate:       startDateOpt,
+		EndDate:         endDateOpt,
 		TimeEntries:     timeEntries,
 	})
 	if err != nil {
@@ -443,10 +436,10 @@ type EPInvoiceCreateReq struct {
 	InvoiceSettingsID uint `json:"invoice_settings_id"`
 
 	// StartDate of period of performance for invoice
-	StartDate timeutil.APITime `json:"start_date"`
+	StartDate time.Time `json:"start_date"`
 
 	// EndDate of period of performance for invoice
-	EndDate timeutil.APITime `json:"end_date"`
+	EndDate time.Time `json:"end_date"`
 }
 
 func (s Server) EPInvoiceUpdate(c *fiber.Ctx) error {
@@ -478,7 +471,7 @@ func (s Server) EPInvoiceUpdate(c *fiber.Ctx) error {
 
 // EPInvoiceUpdateReq is the request body for the update invoice endpoint
 type EPInvoiceUpdateReq struct {
-	SentToClient *timeutil.APITime `json:"sent_to_client"`
-	PaidByClient *timeutil.APITime `json:"paid_by_client"`
-	Archived     bool              `json:"archived"`
+	SentToClient *time.Time `json:"sent_to_client"`
+	PaidByClient *time.Time `json:"paid_by_client"`
+	Archived     bool       `json:"archived"`
 }

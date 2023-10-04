@@ -1,7 +1,6 @@
 package timeutil
 
 import (
-	"database/sql/driver"
 	"fmt"
 	"time"
 )
@@ -20,8 +19,7 @@ func NewAPITime(inTime time.Time) (*APITime, error) {
 		return nil, fmt.Errorf("input time does not have a location set")
 	}
 
-	storeTime := inTime.In(time.UTC)
-	storeTime = storeTime.Round(time.Millisecond)
+	storeTime := RoundForPG(inTime.In(time.UTC))
 
 	return &APITime{
 		Time: storeTime,
@@ -44,36 +42,6 @@ func (t *APITime) MakeDateOnly() *APITime {
 	}
 }
 
-func (t *APITime) Value() (driver.Value, error) {
-	return t.Time, nil
-}
-
-func (t *APITime) Scan(value interface{}) error {
-	inTime, ok := value.(time.Time)
-	if !ok {
-		return fmt.Errorf("could not parse")
-	}
-
-	newTime, err := NewAPITime(inTime)
-	if err != nil {
-		return err
-	}
-
-	*t = *newTime
-	return nil
-	/* if strValue, ok := value.(string); ok {
-		outTime, err := pq.ParseTimestamp(time.UTC, strValue)
-		if err != nil {
-			return fmt.Errorf("failed to parse time: %s", err)
-		}
-
-		newTime, err := NewAPITime(outTime)
-		if err != nil {
-			return fmt.Errorf("failed to create APITime: %s", err)
-		}
-
-		*t = *newTime
-	}
-
-	return fmt.Errorf("value must be a string") */
+func RoundForPG(inTime time.Time) time.Time {
+	return inTime.Round(time.Millisecond)
 }
